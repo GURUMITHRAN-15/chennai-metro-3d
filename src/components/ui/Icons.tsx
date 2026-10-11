@@ -99,6 +99,9 @@ export const Route = (p: IconProps) => (
 export const Info = (p: IconProps) => (
   <svg {...base(p)}><circle cx="12" cy="12" r="9" /><path d="M12 11v5M12 8h.01" /></svg>
 );
+export const Keyboard = (p: IconProps) => (
+  <svg {...base(p)}><rect x="2.5" y="6" width="19" height="12" rx="2" /><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7.5 14.5h9" /></svg>
+);
 export const Volume = (p: IconProps) => (
   <svg {...base(p)}><path d="M11 5L6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
 );
