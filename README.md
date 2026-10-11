@@ -147,7 +147,13 @@ As a sanity check, the real track (OpenStreetMap) from Poonamallee Bypass to Vad
 
 To correct anything, edit the JSON. Components read the route model, never hard-coded values. Stations can be added, removed or re-ordered; `validateBundle()` reports problems in plain language.
 
+## Contributing
+
+Corrections and code are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Licences
+
+The code in this repository is under the [MIT License](LICENSE). That covers the code only: the data and recordings below keep their own licences.
 
 Code dependencies are MIT-licensed: Next.js, React, three.js, React Three Fiber, drei, Zustand and Tailwind CSS. The Geist fonts and Noto Sans Tamil (bundled subset in `src/fonts`) are under the SIL Open Font License 1.1. The train recordings in `public/audio/` were supplied by the project owner and are not covered by the code licences; check their source licence before redistributing. Metro track geometry, station positions and structure (elevated / underground) in `src/data/network.json` come from OpenStreetMap: **© OpenStreetMap contributors**, available under the [Open Database Licence (ODbL)](https://www.openstreetmap.org/copyright). They are baked by `npm run osm:fetch` then `npm run osm:bake` (`scripts/osm/`); raw downloads are cached in `data-cache/` (not committed). The city tiles in `public/world/` (building footprints, streets, water, parks, trees) come from the same source, also **© OpenStreetMap contributors** (ODbL): `node scripts/osm/extract.mjs <southern-zone.osm.pbf>` (Geofabrik extract) then `npm run osm:tiles`.
 
