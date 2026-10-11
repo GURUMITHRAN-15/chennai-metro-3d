@@ -45,6 +45,7 @@ interface ViewStore {
   weather: Weather;
   sidebarOpen: boolean;
   settingsOpen: boolean;
+  shortcutsOpen: boolean;
   /** Free camera keeps its framing relative to the moving train. */
   freeFollow: boolean;
   settings: Settings;
@@ -54,6 +55,7 @@ interface ViewStore {
   setWeather: (w: Weather) => void;
   setSidebarOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
+  setShortcutsOpen: (open: boolean) => void;
   setFreeFollow: (follow: boolean) => void;
   updateSettings: (patch: Partial<Settings>) => void;
 }
@@ -98,6 +100,7 @@ export const useViewStore = create<ViewStore>((set, get) => ({
   weather: "clear",
   sidebarOpen: true,
   settingsOpen: false,
+  shortcutsOpen: false,
   freeFollow: true,
   settings: initialSettings(),
   setCameraMode: (cameraMode) => set({ cameraMode }),
@@ -106,6 +109,7 @@ export const useViewStore = create<ViewStore>((set, get) => ({
   setWeather: (weather) => set({ weather }),
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setFreeFollow: (freeFollow) => set({ freeFollow }),
   updateSettings: (patch) => {
     const settings = { ...get().settings, ...patch };

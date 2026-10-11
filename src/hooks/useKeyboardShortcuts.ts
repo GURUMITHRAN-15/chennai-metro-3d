@@ -14,6 +14,7 @@ export const SHORTCUT_HELP: { keys: string; action: string }[] = [
   { keys: "S", action: "Route panel" },
   { keys: "F", action: "Fullscreen" },
   { keys: ",", action: "Settings" },
+  { keys: "?", action: "Keyboard shortcuts" },
 ];
 
 const RANGE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);

@@ -8,6 +8,7 @@ import { RouteSidebar } from "./RouteSidebar";
 import { ControlBar } from "./ControlBar";
 import { ArrivalAnnouncer, ArrivalOverlay } from "./ArrivalOverlay";
 import { SettingsPanel } from "./SettingsPanel";
+import { ShortcutsHelp } from "./ShortcutsHelp";
 import { FreeCameraPad } from "./FreeCameraPad";
 import { PassengerPad } from "./PassengerPad";
 import { TicketCard } from "./TicketCard";
@@ -144,6 +145,7 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
         else void document.documentElement.requestFullscreen?.().catch(() => undefined);
       },
       ",": () => view().setSettingsOpen(true),
+      "?": () => view().setShortcutsOpen(true),
     };
     CAMERA_MODES.forEach((m) => {
       map[m.key] = () => view().setCameraMode(m.id);
@@ -151,7 +153,8 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
     return map;
   }, [engine]);
   const settingsOpen = useViewStore((s) => s.settingsOpen);
-  useKeyboardShortcuts(shortcuts, !settingsOpen && !menuOpen);
+  const shortcutsOpen = useViewStore((s) => s.shortcutsOpen);
+  useKeyboardShortcuts(shortcuts, !settingsOpen && !shortcutsOpen && !menuOpen);
 
   const journeyTitle = `${engine.journey.from.name} → ${engine.journey.to.name}`;
 
@@ -213,6 +216,7 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
       <MobileSheet engine={engine} snap={snap} />
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <SettingsPanel />
+      <ShortcutsHelp />
       <LoadingScreen progress={progress} visible={!loaded} title={journeyTitle}>
         {sceneSlow && !loaded && (
           <div className="flex flex-col gap-3 animate-fade-in" role="alert" data-scene-slow="true">

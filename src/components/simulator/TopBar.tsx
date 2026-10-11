@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../ui/Logo";
 import { Segmented } from "../ui/Segmented";
-import { Clear, Cloud, CloudRain, Expand, Moon, More, Shrink, Sliders, Sun } from "../ui/Icons";
+import { Clear, Cloud, CloudRain, Expand, Keyboard, Moon, More, Shrink, Sliders, Sun } from "../ui/Icons";
 import { CAMERA_MODES, useViewStore, type CameraMode, type Weather } from "../../simulation/store";
 
 export function useFullscreen() {
@@ -156,6 +156,7 @@ export function IconButton({
 export function TopBar({ onOpenMenu, threeD = true }: { onOpenMenu: () => void; threeD?: boolean }) {
   const { full, toggle } = useFullscreen();
   const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
+  const setShortcutsOpen = useViewStore((s) => s.setShortcutsOpen);
   return (
     <header className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4 md:p-5">
       <div className="pointer-events-auto flex h-[42px] items-center rounded-[10px] md:pl-1">
@@ -181,6 +182,9 @@ export function TopBar({ onOpenMenu, threeD = true }: { onOpenMenu: () => void; 
         {threeD && <WeatherMenu />}
         <IconButton label={full ? "Exit fullscreen" : "Enter fullscreen"} onClick={toggle} pressed={full}>
           {full ? <Shrink /> : <Expand />}
+        </IconButton>
+        <IconButton label="Keyboard shortcuts (?)" onClick={() => setShortcutsOpen(true)}>
+          <Keyboard />
         </IconButton>
         <IconButton label="Settings" onClick={() => setSettingsOpen(true)}>
           <Sliders />
