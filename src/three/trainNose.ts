@@ -355,13 +355,13 @@ export function buildNose(x0: number): NoseParts {
     lamps.push(patch(x0, { zc: s * 1.2, yc: LAMP_Y - 0.02, hz: 0.03, hy: 0.03, n: 2, lift: 0.024, rings: 1, segments: 12 }, "#ffffff"));
   }
 
-  // Cab frame from the inside: console and header. Each piece
+  // Cab frame from the inside: the header. Each piece
   // stops short of the face at its outermost corner so nothing pokes through.
   const inside = (y0: number, y1: number, z0: number, z1: number, gap: number) =>
     x0 + Math.min(faceX(y0, z0), faceX(y0, z1), faceX(y1, z0), faceX(y1, z1)) - gap;
   const frame: BufferGeometry[] = [];
   // (The windscreen pillars are the cab lining's edge now: buildCabLining.)
-  frame.push(slab(x0 + 0.9, inside(1.13, 1.82, -1.1, 1.1, 0.12), 1.13, 1.82, -1.1, 1.1, C.coupler));
+  // (The driver's desk and seat are cabConsole.ts.)
   frame.push(slab(x0 - 0.2, inside(3.42, 3.5, -1.05, 1.05, 0.06), 3.42, 3.5, -1.05, 1.05, C.coupler));
 
   const join = (parts: BufferGeometry[], uv = false) => {

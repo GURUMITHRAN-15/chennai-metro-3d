@@ -105,6 +105,9 @@ interface TrainMaterials {
   tail: MeshBasicMaterial;
   door: MeshStandardMaterial;
   destination: MeshBasicMaterial;
+  /** The driver's desk and seat; their lamps and screens. */
+  cab: MeshStandardMaterial;
+  cabGlow: MeshBasicMaterial;
 }
 
 function useTrainMaterials(lineColour: string, destination: string): TrainMaterials {
@@ -118,6 +121,9 @@ function useTrainMaterials(lineColour: string, destination: string): TrainMateri
     return {
       // Livery comes from vertex colours (trainModel.ts paintBody / trainNose.ts).
       body: new MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: 0.25, roughness: 0.38 }),
+      // Moulded plastic and leather: matt (black plates and the seat stay black).
+      cab: new MeshStandardMaterial({ color: "#ffffff", vertexColors: true, metalness: 0.05, roughness: 0.72 }),
+      cabGlow: new MeshBasicMaterial({ vertexColors: true, toneMapped: false }),
       dark: new MeshStandardMaterial({ color: "#23272d", roughness: 0.6, metalness: 0.2 }),
       under: new MeshStandardMaterial({ color: "#5d636b", roughness: 0.7, metalness: 0.3 }),
       glass: new MeshStandardMaterial({
@@ -266,6 +272,8 @@ function Car({
       <mesh geometry={geo.glass} material={mats.glass} renderOrder={2} />
       {geo.nose && <mesh ref={nose} geometry={geo.nose} material={mats.body} castShadow />}
       {geo.windshield && <mesh geometry={geo.windshield} material={mats.windshield} renderOrder={2} />}
+      {geo.cabDesk && <mesh geometry={geo.cabDesk} material={mats.cab} />}
+      {geo.cabGlow && <mesh geometry={geo.cabGlow} material={mats.cabGlow} />}
       {geo.headlights && <mesh geometry={geo.headlights} material={leading ? mats.head : mats.tail} />}
       {geo.destination && leading && <mesh geometry={geo.destination} material={mats.destination} />}
       <instancedMesh ref={leaves} args={[geo.doorLeaf, mats.door, geo.leaves.length]} castShadow frustumCulled={false} />

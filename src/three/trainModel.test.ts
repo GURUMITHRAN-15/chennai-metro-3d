@@ -162,3 +162,25 @@ test("the cab is lined inside: closed round the driver, open through the windscr
   const saloon = new Vector3(x0 - 0.4, 2.75, 0);
   assert.ok(new Raycaster(saloon, new Vector3(1, 0, 0.85).normalize()).intersectObject(mesh).length > 0, "cab corner closed from the saloon");
 });
+
+test("the driver's desk: inside the nose, in front of the driver, below the line of sight", async () => {
+  const { Mesh, MeshBasicMaterial, Raycaster, Vector3 } = await import("three");
+  const x0 = HALF - 2.3;
+  for (const g of [dmc.cabDesk!, dmc.cabGlow!]) {
+    const pos = g.getAttribute("position");
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i) - x0;
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      assert.ok(x < faceX(y, z) - 0.04, `desk vertex x ${x.toFixed(3)} at y ${y.toFixed(2)} z ${z.toFixed(2)} pokes out of the nose`);
+      assert.ok(y >= 1.13 - 1e-3 && Math.abs(z) < TRAIN.width / 2 - 0.07 + 1e-3, "on the floor, between the walls");
+    }
+  }
+  const mesh = new Mesh(dmc.cabDesk!, new MeshBasicMaterial());
+  const eye = new Vector3(DRIVER_EYE.x, DRIVER_EYE.y, DRIVER_EYE.z);
+  const hit = (dx: number, dy: number, dz: number) => new Raycaster(eye, new Vector3(dx, dy, dz).normalize(), 0, 3).intersectObject(mesh)[0]?.distance ?? null;
+  assert.equal(hit(1, -0.12, 0), null, "the track ahead is in view over the desk");
+  const d = hit(1, -0.7, 0);
+  assert.ok(d !== null && d > 0.35, `the desk is ahead of the driver, within reach (${d})`);
+  assert.equal(tc.cabDesk, null, "no desk in the middle car");
+});

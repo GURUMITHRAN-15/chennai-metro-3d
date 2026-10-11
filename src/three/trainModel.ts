@@ -2,6 +2,7 @@ import { BoxGeometry, BufferAttribute, BufferGeometry, Color, CylinderGeometry, 
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { TRAIN } from "./layout.ts";
 import { buildCabLining, buildNose, NOSE_DEPTH, paint } from "./trainNose.ts";
+import { buildCabConsole } from "./cabConsole.ts";
 
 /**
  * Procedural metro car, built in car-local space:
@@ -35,6 +36,9 @@ export interface CarGeometry {
   /** Cab nose shell (hidden from the driver's seat). */
   nose: BufferGeometry | null;
   windshield: BufferGeometry | null;
+  /** The driver's desk and seat (vertex-coloured), and its lamps and screens (unlit). */
+  cabDesk: BufferGeometry | null;
+  cabGlow: BufferGeometry | null;
   /** Head-light beam origin (cab cars). */
   beam: [number, number, number] | null;
   doorLeaf: BufferGeometry;
@@ -347,7 +351,12 @@ export function buildCar(kind: CarKind): CarGeometry {
   let windshield: BufferGeometry | null = null;
   let beam: [number, number, number] | null = null;
   let cabLining: BufferGeometry | null = null;
+  let cabDesk: BufferGeometry | null = null;
+  let cabGlow: BufferGeometry | null = null;
   if (isCab) {
+    const desk = buildCabConsole(xFront, DRIVER_SEAT_Z);
+    cabDesk = desk.solid;
+    cabGlow = desk.glow;
     // The shell faces outwards only: line the cab so it is closed from the saloon and the driver's seat.
     cabLining = buildCabLining(xFront, PANEL_IN, 1.13, 3.16, { wall: LIVERY.lining, floor: "#545d68", ceiling: "#eef1f3", front: "#858d96" });
     const nose = buildNose(xFront);
@@ -412,6 +421,8 @@ export function buildCar(kind: CarKind): CarGeometry {
     destination,
     nose: noseOut,
     windshield,
+    cabDesk,
+    cabGlow,
     beam,
     doorLeaf: leafBody,
     doorGlass: leafGlass,
@@ -426,4 +437,6 @@ export const BOGIE_OFFSET = HALF - 3.1;
 /** Distance from the leading car centre to the nose tip. */
 export const NOSE_TIP = HALF - CAB + NOSE_DEPTH;
 /** Where the driver's eyes are, in car-local coordinates of the leading DMC. */
-export const DRIVER_EYE = { x: HALF - CAB + 1.05, y: 2.78, z: -0.35 };
+/** The driver sits left of the centre line, as in the Phase II cab. */
+const DRIVER_SEAT_Z = -0.35;
+export const DRIVER_EYE = { x: HALF - CAB + 1.0, y: 2.78, z: DRIVER_SEAT_Z };
