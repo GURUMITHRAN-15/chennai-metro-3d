@@ -6,6 +6,7 @@ import { useId, useMemo, useState } from "react";
 import { RouteMap } from "./RouteMap";
 import { ArrowRight, ChevronDown, Swap } from "../ui/Icons";
 import { buttonClass } from "../ui/Button";
+import { LineRoundel } from "../ui/LineRoundel";
 import { journeyDistanceKm, journeyDuration, simulatorHref, stationsBetween, type RouteSummary } from "../../lib/routeSummary";
 import { statusChip } from "../../lib/lines";
 
@@ -17,7 +18,8 @@ export function JourneyPlanner({ summaries }: { summaries: RouteSummary[] }) {
   const [routeId, setRouteId] = useState(initial.id);
   const summary = summaries.find((r) => r.id === routeId) ?? summaries[0];
   return (
-    <div className="flex flex-1 flex-col gap-5">
+    <div className="flex flex-1 flex-col gap-8">
+      <h1 className="text-[clamp(2.25rem,4.5vw,3.25rem)] font-semibold leading-[1.04] tracking-[-0.035em]">Plan a journey</h1>
       <LinePicker summaries={summaries} value={summary.id} onChange={setRouteId} />
       {/* Keyed by route so the stations reset when the line changes. */}
       <Planner key={summary.id} summary={summary} initialFrom={summary === initial ? params.get("from") : null} initialTo={summary === initial ? params.get("to") : null} />
@@ -27,7 +29,7 @@ export function JourneyPlanner({ summaries }: { summaries: RouteSummary[] }) {
 
 function LinePicker({ summaries, value, onChange }: { summaries: RouteSummary[]; value: string; onChange: (id: string) => void }) {
   return (
-    <div role="radiogroup" aria-label="Line" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    <div role="radiogroup" aria-label="Line" className="-mx-1 flex flex-wrap gap-2">
       {summaries.map((r) => {
         const on = r.id === value;
         return (
@@ -37,16 +39,15 @@ function LinePicker({ summaries, value, onChange }: { summaries: RouteSummary[];
             role="radio"
             aria-checked={on}
             onClick={() => onChange(r.id)}
-            className={`flex flex-col gap-1.5 rounded-xl border px-4 py-3 text-left transition-colors ${on ? "border-accent bg-surface" : "border-line bg-surface/40 hover:bg-surface"}`}
+            className={`flex items-center gap-2.5 rounded-full py-1.5 pl-1.5 pr-4 text-left transition-[background-color,box-shadow,transform] duration-100 ease-out active:scale-[0.97] ${
+              on ? "bg-white/[0.09] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" : "hover:bg-white/[0.04]"
+            }`}
           >
-            <span className="flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-muted">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: r.lineColour }} aria-hidden="true" />
-              {r.lineName.toUpperCase()} · {r.lineColourName.toUpperCase()}
-              <span className={`ml-auto rounded-full border px-1.5 py-px text-[10px] ${r.preview ? "border-[#e8742a]/40 text-[#f0a46c]" : "border-line-strong text-subtle"}`}>
-                {statusChip(r.status).toUpperCase()}
-              </span>
+            <LineRoundel colour={r.lineColour} name={r.lineName} />
+            <span className="flex flex-col leading-tight">
+              <span className={`text-[14px] font-medium ${on ? "text-ink" : "text-subtle"}`}>{r.title}</span>
+              {r.preview && <span className="text-[12px] text-[#f0a46c]">{statusChip(r.status)}</span>}
             </span>
-            <span className="text-[14px] font-medium leading-snug text-ink">{r.title}</span>
           </button>
         );
       })}
@@ -103,17 +104,12 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
     <div className="flex flex-1 flex-col gap-6 lg:flex-row lg:gap-8">
       <section
         aria-labelledby="choose-heading"
-        className="flex w-full flex-col gap-7 rounded-2xl border border-line bg-surface p-6 sm:p-8 lg:max-w-[420px]"
+        className="flex w-full flex-col gap-7 lg:max-w-[400px]"
       >
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2 font-mono text-[12px] tracking-[0.08em] text-muted">
-            <span className="h-1 w-3.5 rounded-sm" style={{ background: summary.lineColour }} aria-hidden="true" />
-            {summary.lineName.toUpperCase()} · {summary.lineColourName.toUpperCase()}
-          </div>
-          <h1 id="choose-heading" className="text-[28px] font-semibold tracking-[-0.015em]">
-            Choose your journey
-          </h1>
-        </div>
+        <h2 id="choose-heading" className="flex items-center gap-3 text-[15px] font-medium text-subtle">
+          <LineRoundel colour={summary.lineColour} name={summary.lineName} size="sm" />
+          {summary.lineColourName}: choose two stations
+        </h2>
 
         <div className="flex flex-col gap-2.5">
           <StationSelect
@@ -124,14 +120,14 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
             active={active === "from"}
             onFocus={() => setActive("from")}
             onChange={setFrom}
-            marker={<span className="h-2.5 w-2.5 rounded-full border-2 border-accent" />}
+            marker={<span className="h-3 w-3 rounded-full border-[2.5px] border-ink" />}
           />
           <div className="-my-1 flex justify-end">
             <button
               type="button"
               onClick={swap}
               aria-label="Swap origin and destination"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-line-strong bg-surface text-subtle transition-colors hover:text-ink"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.06] text-subtle transition-[background-color,color,transform] duration-100 ease-out hover:bg-white/[0.1] hover:text-ink active:scale-[0.94]"
             >
               <Swap size={16} />
             </button>
@@ -144,13 +140,13 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
             active={active === "to"}
             onFocus={() => setActive("to")}
             onChange={setTo}
-            marker={<span className="h-2.5 w-2.5 rounded-full bg-ink" />}
+            marker={<span className="h-3 w-3 rounded-full bg-ink" />}
           />
         </div>
 
-        <dl className="grid grid-cols-3 gap-3 border-t border-line pt-6">
+        <dl className="grid grid-cols-3 gap-3 border-t border-line pt-7">
           <Stat label="Distance" value={stats ? stats.km.toFixed(1) : "—"} unit="km" />
-          <Stat label="Est. journey" value={stats ? String(Math.round(stats.seconds / 60)) : "—"} unit="min" />
+          <Stat label="Journey" value={stats ? String(Math.round(stats.seconds / 60)) : "—"} unit="min" />
           <Stat label="Stations" value={stats ? String(stats.stops) : "—"} />
         </dl>
 
@@ -185,7 +181,7 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
           }}
           className={buttonClass("primary", "lg", `mt-auto w-full ${same ? "pointer-events-none opacity-40" : ""}`)}
         >
-          Start Journey <ArrowRight size={18} />
+          Ride this journey <ArrowRight size={18} />
         </Link>
         <Link
           href={same ? "#" : `${href}&walk=1`}
@@ -195,11 +191,11 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
           }}
           className={buttonClass("secondary", "md", `w-full ${same ? "pointer-events-none opacity-40" : ""}`)}
         >
-          Walk it as a passenger
+          Start on foot, at the ticket hall
         </Link>
       </section>
 
-      <section aria-label="Route map" className="relative min-h-[420px] flex-1 overflow-hidden rounded-2xl border border-line bg-[#0a0f18]">
+      <section aria-label="Route map" className="relative min-h-[460px] flex-1 overflow-hidden rounded-3xl bg-[#0a0f18]">
         <div className="absolute inset-x-6 top-5 z-10 flex flex-wrap items-center justify-between gap-3 text-[13px] text-muted">
           <p>
             Select a station to set it as{" "}
@@ -217,8 +213,8 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
           </div>
         </div>
         <RouteMap summary={summary} from={from} to={to} onSelect={pick} className="absolute inset-x-2 bottom-10 top-14 h-[calc(100%-6rem)] w-[calc(100%-1rem)]" />
-        <p className="absolute bottom-4 left-6 right-6 font-mono text-[11px] text-faint">
-          Drawn from station coordinates (OpenStreetMap) · vertical scale exaggerated
+        <p className="absolute bottom-5 left-6 right-6 text-[12px] text-faint">
+          Drawn from station positions (OpenStreetMap). North–south is stretched so names fit.
         </p>
         <p className="sr-only" aria-live="polite">
           {announce}
@@ -231,10 +227,10 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <dt className="text-[12px] text-muted">{label}</dt>
-      <dd className="tabular font-mono text-[22px] font-medium">
+      <dt className="text-[13px] text-muted">{label}</dt>
+      <dd className="tabular text-[28px] font-semibold leading-none tracking-[-0.02em]">
         {value}
-        {unit && <span className="text-[13px] text-muted"> {unit}</span>}
+        {unit && <span className="text-[14px] font-medium tracking-normal text-muted"> {unit}</span>}
       </dd>
     </div>
   );
@@ -261,11 +257,11 @@ function StationSelect({
 }) {
   return (
     <div className="flex flex-col gap-2.5">
-      <label htmlFor={id} className="font-mono text-[11px] tracking-[0.12em] text-muted">
-        {label.toUpperCase()}
+      <label htmlFor={id} className="text-[14px] text-muted">
+        {label}
       </label>
       <div
-        className={`relative flex h-[52px] items-center rounded-[10px] border bg-surface-2 transition-colors ${active ? "border-accent" : "border-line-strong"}`}
+        className={`relative flex h-[54px] items-center rounded-2xl bg-white/[0.05] transition-shadow duration-150 ${active ? "shadow-[inset_0_0_0_1.5px_rgba(245,247,250,0.6)]" : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"}`}
       >
         <span className="pointer-events-none absolute left-4 flex items-center" aria-hidden="true">
           {marker}
@@ -275,7 +271,7 @@ function StationSelect({
           value={value}
           onFocus={onFocus}
           onChange={(e) => onChange(e.target.value)}
-          className="h-full w-full cursor-pointer appearance-none rounded-[10px] bg-transparent pl-11 pr-10 text-[16px] font-medium text-ink outline-none"
+          className="h-full w-full cursor-pointer appearance-none rounded-2xl bg-transparent pl-11 pr-10 text-[17px] font-medium text-ink outline-none"
         >
           {stops.map((s) => (
             <option key={s.id} value={s.id} className="bg-surface text-ink">

@@ -3,6 +3,7 @@ import { SiteHeader } from "../../components/navigation/SiteHeader";
 import { SiteFooter } from "../../components/navigation/SiteFooter";
 import { dataBundle } from "../../simulation/data";
 import { getRouteSummary } from "../../lib/getRouteSummary";
+import { PageIntro, SectionTitle } from "../../components/ui/PageIntro";
 
 export const metadata: Metadata = {
   title: "About & data sources",
@@ -26,6 +27,15 @@ const ROWS: { what: string; status: "Verified" | "Reported" | "Assumed" | "Appro
   { what: "Facades, shop names, traffic, crowds", status: "Procedural", detail: "Window patterns, invented shop names, road traffic and passengers are generated, seeded so they are the same on every visit." },
 ];
 
+/** How sure each kind of fact is, most to least. */
+const STATUS: Record<(typeof ROWS)[number]["status"], { colour: string; meaning: string }> = {
+  Verified: { colour: "#3dd68c", meaning: "checked against the map or an official source" },
+  Reported: { colour: "#6fa8ff", meaning: "as published in the news or by CMRL" },
+  Approximate: { colour: "#b7c0cc", meaning: "real in outline, estimated in detail" },
+  Assumed: { colour: "#f2b705", meaning: "a typical value; nothing has been published" },
+  Procedural: { colour: "#7a8596", meaning: "generated, but the same on every visit" },
+};
+
 export default function AboutPage() {
   const s = getRouteSummary();
   const sources = [
@@ -37,97 +47,97 @@ export default function AboutPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main id="main" className="flex-1 px-4 py-10 sm:px-8 lg:px-12 lg:py-14">
-        <div className="flex max-w-3xl flex-col gap-5">
-          <h1 className="text-[32px] font-semibold tracking-[-0.02em] sm:text-[40px]">About Chennai Metro 3D</h1>
-          <p className="text-[17px] leading-relaxed text-subtle">
-            An interactive, real-time 3D ride on Chennai Metro&apos;s Blue, Green, Purple, Yellow and Red lines, on the real track and through the
-            real city (from OpenStreetMap). Pick a line and two stations and watch a three-car train accelerate, cruise, brake into each platform, open its doors and carry on — from five camera angles, by
-            day or night, in sun or rain.
+      <main id="main" className="flex-1 px-5 pb-24 pt-14 sm:px-8 lg:px-12 lg:pt-20">
+        <PageIntro title="What's real, and what isn't.">
+          <p>
+            Chennai Metro 3D is a real-time ride on the Blue, Green, Purple, Yellow and Red lines, on the real track and through the real city.
+            Pick two stations and ride between them from the cab, a seat, on foot or from above, by day or night, in sun or rain.
           </p>
-          <p className="text-[15px] leading-relaxed text-muted">
-            The track, stations, tunnels and viaducts of every line, and the buildings, streets, flyovers, water and parks around
-            them, are baked from OpenStreetMap. The city streams in around the train in one-kilometre tiles built in a background
-            thread. Underground, the train runs through tunnels and curved station halls; above ground, along real roads and past
-            real landmarks.
+        </PageIntro>
+
+        <div className="mt-12 grid max-w-[64rem] gap-6 text-[16px] leading-relaxed text-muted lg:grid-cols-2 lg:gap-12">
+          <p>
+            The track, stations, tunnels and viaducts of every line, and the buildings, streets, flyovers, water and parks around them, come from
+            OpenStreetMap. The city streams in around the train in one-kilometre tiles, built in a background thread. Underground, the train runs
+            through tunnels and curved station halls; above ground, along real roads and past real landmarks.
           </p>
-          <p className="text-[15px] leading-relaxed text-muted">
-            It runs entirely in the browser with no paid services and no API keys: open-source libraries (Next.js, React, three.js,
-            React Three Fiber), data stored as JSON in the project, textures drawn procedurally at runtime, and announcements spoken
-            by your browser&apos;s built-in voice. It is an independent project and is not affiliated with Chennai Metro Rail Limited.
+          <p>
+            It runs entirely in your browser, with no paid services, no API keys and no tracking: open-source libraries, data kept as JSON in the
+            project, textures drawn as it loads, and announcements spoken by your browser&apos;s own voice. It is an independent project, not
+            affiliated with Chennai Metro Rail Limited.
           </p>
         </div>
 
-        <section className="mt-14" aria-labelledby="provenance">
-          <h2 id="provenance" className="mb-5 text-[13px] font-semibold tracking-[0.12em] text-muted">
-            WHAT IS REAL, WHAT IS APPROXIMATED
-          </h2>
-          <div className="overflow-x-auto rounded-2xl border border-line">
-            <table className="w-full min-w-[640px] text-left text-[14px]">
-              <thead className="border-b border-line text-[12px] text-muted">
-                <tr>
-                  <th scope="col" className="px-5 py-3 font-medium">Item</th>
-                  <th scope="col" className="px-5 py-3 font-medium">Status</th>
-                  <th scope="col" className="px-5 py-3 font-medium">Detail</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
+        <section className="mt-24 lg:mt-32" aria-labelledby="provenance">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20">
+            <div className="flex flex-col gap-5 lg:sticky lg:top-8 lg:self-start">
+              <SectionTitle id="provenance">Where each part comes from</SectionTitle>
+              <dl className="flex flex-col gap-2.5 text-[14px]">
+                {Object.entries(STATUS).map(([k, v]) => (
+                  <div key={k} className="flex gap-2.5">
+                    <dt className="flex w-28 shrink-0 items-center gap-2 font-medium text-ink">
+                      <span className="h-2 w-2 rounded-full" style={{ background: v.colour }} aria-hidden="true" />
+                      {k}
+                    </dt>
+                    <dd className="text-muted">{v.meaning}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+            <div>
+              <dl>
                 {ROWS.map((r) => (
-                  <tr key={r.what}>
-                    <th scope="row" className="px-5 py-3.5 align-top font-medium text-ink">{r.what}</th>
-                    <td className="px-5 py-3.5 align-top">
-                      <span
-                        className={`inline-flex h-6 items-center rounded-full border px-2.5 text-[11.5px] font-medium ${
-                          r.status === "Verified"
-                            ? "border-[#3dd68c]/40 text-[#7ee2ae]"
-                            : r.status === "Reported"
-                              ? "border-accent/50 text-accent-soft"
-                              : r.status === "Assumed"
-                                ? "border-route/40 text-route"
-                                : "border-line-strong text-subtle"
-                        }`}
-                      >
+                  <div key={r.what} className="grid grid-cols-[minmax(0,1fr)] gap-2 border-t border-line py-6 last:border-b sm:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] sm:gap-8">
+                    <dt className="flex flex-col gap-1.5">
+                      <span className="text-[16px] font-semibold leading-snug tracking-[-0.01em]">{r.what}</span>
+                      <span className="flex items-center gap-2 text-[13px] text-subtle">
+                        <span className="h-2 w-2 rounded-full" style={{ background: STATUS[r.status].colour }} aria-hidden="true" />
                         {r.status}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5 align-top leading-relaxed text-muted">{r.detail}</td>
-                  </tr>
+                    </dt>
+                    <dd className="text-[15px] leading-relaxed text-muted">{r.detail}</dd>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </dl>
+              <p className="mt-5 text-[13px] leading-relaxed text-faint">
+                Every value lives in <code className="text-subtle">src/data/*.json</code> beside its source, so a correction needs no code change.
+                Last checked{" "}
+                {new Date(s.lastVerified).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}.
+              </p>
+            </div>
           </div>
-          <p className="mt-4 text-[13px] text-faint">
-            All values live in <code className="font-mono text-subtle">src/data/*.json</code> with their sources, so corrections need
-            no code changes. Last verified {s.lastVerified}.
-          </p>
         </section>
 
-        <section className="mt-14 grid gap-12 lg:grid-cols-2" aria-label="Sources and credits">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-[13px] font-semibold tracking-[0.12em] text-muted">SOURCES</h2>
-            <ul className="flex flex-col gap-2.5 text-[14px] leading-relaxed text-subtle">
-              {unique.map((src) => (
-                <li key={src} className="border-l-2 border-line pl-3">{src}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-4">
-            <h2 className="text-[13px] font-semibold tracking-[0.12em] text-muted">CREDITS &amp; LICENCES</h2>
-            <ul className="flex flex-col gap-2.5 text-[14px] leading-relaxed text-subtle">
-              <li className="border-l-2 border-line pl-3">three.js, React Three Fiber, drei — MIT licence</li>
-              <li className="border-l-2 border-line pl-3">Next.js, React, Tailwind CSS, Zustand — MIT licence</li>
-              <li className="border-l-2 border-line pl-3">Geist and Geist Mono by Vercel — SIL Open Font License 1.1</li>
-              <li className="border-l-2 border-line pl-3">Noto Sans Tamil by Google — SIL Open Font License 1.1</li>
-              <li className="border-l-2 border-line pl-3">
-                Station lists for Lines 3 and 5 where OpenStreetMap is incomplete: Wikipedia (Purple Line, Red Line), CC BY-SA 4.0
+        <section className="mt-24 grid gap-16 lg:mt-32 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] lg:gap-20" aria-label="Sources and credits">
+          <SectionTitle>Sources</SectionTitle>
+          <ul className="flex flex-col text-[15px] leading-relaxed text-subtle">
+            {unique.map((src) => (
+              <li key={src} className="border-t border-line py-3 last:border-b">
+                {src}
               </li>
-              <li className="border-l-2 border-line pl-3">
-                Metro track, station positions, tunnels/viaducts, building footprints, streets, flyovers, water and parks: map data
-                © OpenStreetMap contributors, available
-                under the Open Database Licence (ODbL) — openstreetmap.org/copyright
+            ))}
+          </ul>
+          <SectionTitle>Credits and licences</SectionTitle>
+          <ul className="flex flex-col text-[15px] leading-relaxed text-subtle">
+            {[
+              "three.js, React Three Fiber, drei: MIT licence",
+              "Next.js, React, Tailwind CSS, Zustand: MIT licence",
+              "Geist and Geist Mono by Vercel: SIL Open Font License 1.1",
+              "Noto Sans Tamil by Google: SIL Open Font License 1.1",
+              "Station lists for Lines 3 and 5 where OpenStreetMap is incomplete: Wikipedia (Purple Line, Red Line), CC BY-SA 4.0",
+            ].map((c) => (
+              <li key={c} className="border-t border-line py-3">
+                {c}
               </li>
-            </ul>
-          </div>
+            ))}
+            <li className="border-y border-line py-3">
+              Metro track, station positions, tunnels and viaducts, building footprints, streets, flyovers, water and parks: map data ©{" "}
+              <a href="https://www.openstreetmap.org/copyright" className="text-ink underline decoration-white/25 underline-offset-4 hover:decoration-white/70">
+                OpenStreetMap contributors
+              </a>
+              , under the Open Database Licence (ODbL).
+            </li>
+          </ul>
         </section>
       </main>
       <SiteFooter lastVerified={s.lastVerified} />

@@ -14,7 +14,7 @@ export default function RoutesPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <SiteHeader />
-      <main id="main" className="flex flex-1 flex-col px-4 py-6 sm:px-8 sm:py-10 lg:px-12">
+      <main id="main" className="flex flex-1 flex-col px-5 pb-16 pt-12 sm:px-8 lg:px-12 lg:pt-16">
         <Suspense fallback={<div className="flex-1" />}>
           <JourneyPlanner summaries={summaries} />
         </Suspense>

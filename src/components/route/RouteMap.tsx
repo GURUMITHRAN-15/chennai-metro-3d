@@ -186,15 +186,16 @@ export function RouteMap({
         const content = (
           <>
             {(isFrom || isTo || isHi) && (
-              <circle cx={p.x} cy={p.y} r={15} fill="none" stroke={isFrom ? "#1677ff" : "#f5f7fa"} strokeWidth={2} />
+              <circle cx={p.x} cy={p.y} r={15} fill="none" stroke="#f5f7fa" strokeOpacity={isFrom ? 0.55 : 1} strokeWidth={2} />
             )}
             <circle
               cx={p.x}
               cy={p.y}
               r={r}
-              fill={!stop ? "#0a0f18" : isFrom ? "#1677ff" : "#f5f7fa"}
-              stroke={stop ? "#0a0f18" : "#7a8596"}
-              strokeWidth={stop ? 3 : 1.5}
+              // From: hollow, To: filled (as in the planner's fields).
+              fill={!stop || isFrom ? "#0a0f18" : "#f5f7fa"}
+              stroke={isFrom ? "#f5f7fa" : stop ? "#0a0f18" : "#7a8596"}
+              strokeWidth={isFrom ? 3.5 : stop ? 3 : 1.5}
             />
             {(stop || showPassLabels) && !endLabel && shown.has(p.id) && (
               <text
@@ -217,7 +218,7 @@ export function RouteMap({
                   x={p.x}
                   y={above ? p.y - 26 : p.y + 58}
                   textAnchor="middle"
-                  fill={isFrom ? "#6fa8ff" : "#8b96a7"}
+                  fill="#8b96a7"
                   fontSize={11}
                   fontWeight={500}
                   letterSpacing="0.12em"

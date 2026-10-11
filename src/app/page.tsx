@@ -3,6 +3,7 @@ import { Hero } from "../components/landing/Hero";
 import { SiteFooter } from "../components/navigation/SiteFooter";
 import { NetworkMap } from "../components/route/NetworkMap";
 import { ArrowRight } from "../components/ui/Icons";
+import { LineRoundel } from "../components/ui/LineRoundel";
 import { getAllRouteSummaries, getNetworkSummary } from "../lib/getRouteSummary";
 import { simulatorHref } from "../lib/routeSummary";
 import { statusChip } from "../lib/lines";
@@ -17,13 +18,6 @@ const VIEWS = [
   { src: "on-foot", title: "On foot", body: "Buy a ticket at the counter, scan in at the gates and take the escalator up to your train." },
   { src: "aerial", title: "From above", body: "Follow the train over the city, with the traffic and flyovers below." },
 ];
-
-/** Dark text on light line colours (yellow), white on the rest. */
-function onColour(hex: string): string {
-  const n = parseInt(hex.slice(1), 16);
-  const lum = 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
-  return lum > 150 ? "#070b12" : "#ffffff";
-}
 
 export default function HomePage() {
   const routes = getAllRouteSummaries();
@@ -47,20 +41,13 @@ export default function HomePage() {
           <div className="flex flex-col">
             <ul>
               {routes.map((r) => {
-                const number = r.lineName.replace(/\D/g, "");
                 return (
                   <li key={r.id} className="border-t border-line last:border-b">
                     <Link
                       href={simulatorHref(r.id)}
                       className="group -mx-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-4 rounded-xl px-3 py-5 transition-[background-color,transform] duration-100 ease-out hover:bg-white/[0.03] active:scale-[0.99] sm:gap-x-5"
                     >
-                      <span
-                        className="grid h-10 w-10 place-items-center rounded-full text-[16px] font-semibold tabular"
-                        style={{ background: r.lineColour, color: onColour(r.lineColour) }}
-                        aria-hidden="true"
-                      >
-                        {number}
-                      </span>
+                      <LineRoundel colour={r.lineColour} name={r.lineName} size="lg" />
                       <span className="flex min-w-0 flex-col gap-1">
                         <span className="text-[17px] font-semibold leading-snug tracking-[-0.01em]">{r.title}</span>
                         <span className="text-[14px] text-muted">
@@ -124,7 +111,7 @@ export default function HomePage() {
       </section>
 
       <section aria-labelledby="data-heading" className="border-t border-line px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-20">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-20">
           <h2 id="data-heading" className="text-[24px] font-semibold leading-tight tracking-[-0.02em]">
             Built on open data.
           </h2>
