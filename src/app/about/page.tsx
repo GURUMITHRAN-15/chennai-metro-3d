@@ -10,17 +10,18 @@ export const metadata: Metadata = {
 };
 
 const ROWS: { what: string; status: "Verified" | "Reported" | "Assumed" | "Approximate" | "Procedural"; detail: string }[] = [
-  { what: "Station names and order", status: "Verified", detail: "Consistent across CMRS-approval, fare and opening coverage (DT Next, NativePlanet, Swarajya, Oneindia)." },
-  { what: "Which stations are served", status: "Verified", detail: "11 served; six Arcot Road stations passed without stopping at opening." },
-  { what: "Route length (14.64 km)", status: "Reported", detail: "As published for the opening. The modelled spline through station coordinates measures 14.61 km — within 0.2 %." },
-  { what: "Station coordinates", status: "Verified", detail: "Six stations use their own Wikipedia coordinates; five use the bus stop or locality of the same name (±150–300 m)." },
-  { what: "Unopened station positions", status: "Approximate", detail: "No coordinates published; spaced so Alapakkam–Alwarthirunagar spans the reported 3.75 km double-decker." },
-  { what: "Track alignment between stations", status: "Approximate", detail: "A smooth spline through the stations, not the surveyed viaduct, which follows Trunk Road and Arcot Road." },
-  { what: "Train length, cars, speeds", status: "Verified", detail: "Alstom Metropolis: 3 cars, 67.8 m, 80 km/h operating, 90 km/h design." },
+  { what: "Track path, tunnels and viaducts (all five lines)", status: "Verified", detail: "The real track from OpenStreetMap, accurate to a few metres, with its elevated and underground stretches. Poonamallee Bypass–Vadapalani measures 14.73 km against the official 14.64 km." },
+  { what: "Station positions and order", status: "Verified", detail: "OpenStreetMap stations on the real track. Lines 3 and 5 are not fully mapped yet: their missing stations (43 of 48, 18 of 45) follow the Wikipedia station lists and sit at the same-name bus stop or locality, or are spaced evenly between neighbours. Each station page says which." },
+  { what: "Which Line 4 stations are served at opening", status: "Verified", detail: "11 served between Poonamallee Bypass and Vadapalani; six Arcot Road stations passed without stopping (CMRS approval and opening coverage)." },
+  { what: "Route lengths, opening, headway, fares", status: "Reported", detail: "As published (CMRL, news coverage, Wikipedia). Lines 3, 5 and Line 4 east are under construction and ridden as previews: every station is a stop and timings are illustrative." },
+  { what: "City: buildings, streets, water, parks", status: "Approximate", detail: "Real OpenStreetMap footprints and street grid within 700 m of every line. Heights are estimated (OSM has almost none here). Streets with no buildings mapped get plausible plots along the real street." },
+  { what: "Flyovers and interchanges", status: "Approximate", detail: "Paths, lanes and which roads are bridges from OpenStreetMap; deck height (7.5 m), 4% ramps, barriers and piers are standard values, not survey data." },
+  { what: "Landmarks (temples, malls, cinema, hospital, bus stands)", status: "Approximate", detail: "Placed from published coordinates or traced from satellite views and photos; the same spot on every line. Models are stylised; hoardings and film posters are invented." },
+  { what: "Train length, cars, speeds", status: "Verified", detail: "Alstom Metropolis: 3 cars, 67.8 m, 80 km/h operating, 90 km/h design. The same three-car train is used on every line (Lines 1 and 2 really run four-car Phase I trains)." },
   { what: "Porur–Vadapalani speed limit", status: "Reported", detail: "Raised from 25 to 40 km/h in May 2026 per news coverage of the CMRS approval." },
-  { what: "Acceleration, braking, dwell", status: "Assumed", detail: "Typical metro values (1.0 m/s², 0.85 m/s², 22 s). CMRL has not published Line 4 figures." },
-  { what: "Train livery and interior", status: "Approximate", detail: "Stylised; the official livery and seating layout are not reproduced." },
-  { what: "Buildings, trees, traffic", status: "Procedural", detail: "Seeded generation of a plausible Chennai streetscape. No real building is modelled." },
+  { what: "Acceleration, braking, dwell", status: "Assumed", detail: "Typical metro values (1.0 m/s², 0.85 m/s², 22 s); CMRL has not published them." },
+  { what: "Train livery and interior", status: "Approximate", detail: "Stylised after photos of CMRL Alstom Metropolis trainsets." },
+  { what: "Facades, shop names, traffic, crowds", status: "Procedural", detail: "Window patterns, invented shop names, road traffic and passengers are generated, seeded so they are the same on every visit." },
 ];
 
 export default function AboutPage() {
@@ -41,6 +42,12 @@ export default function AboutPage() {
             An interactive, real-time 3D ride on Chennai Metro&apos;s Blue, Green, Purple, Yellow and Red lines, on the real track and through the
             real city (from OpenStreetMap). Pick a line and two stations and watch a three-car train accelerate, cruise, brake into each platform, open its doors and carry on — from five camera angles, by
             day or night, in sun or rain.
+          </p>
+          <p className="text-[15px] leading-relaxed text-muted">
+            The track, stations, tunnels and viaducts of every line, and the buildings, streets, flyovers, water and parks around
+            them, are baked from OpenStreetMap. The city streams in around the train in one-kilometre tiles built in a background
+            thread. Underground, the train runs through tunnels and curved station halls; above ground, along real roads and past
+            real landmarks.
           </p>
           <p className="text-[15px] leading-relaxed text-muted">
             It runs entirely in the browser with no paid services and no API keys: open-source libraries (Next.js, React, three.js,
@@ -110,7 +117,10 @@ export default function AboutPage() {
               <li className="border-l-2 border-line pl-3">Geist and Geist Mono by Vercel — SIL Open Font License 1.1</li>
               <li className="border-l-2 border-line pl-3">Noto Sans Tamil by Google — SIL Open Font License 1.1</li>
               <li className="border-l-2 border-line pl-3">
-                Metro track, station positions, tunnels/viaducts, building footprints, streets, water and parks: map data
+                Station lists for Lines 3 and 5 where OpenStreetMap is incomplete: Wikipedia (Purple Line, Red Line), CC BY-SA 4.0
+              </li>
+              <li className="border-l-2 border-line pl-3">
+                Metro track, station positions, tunnels/viaducts, building footprints, streets, flyovers, water and parks: map data
                 © OpenStreetMap contributors, available
                 under the Open Database Licence (ODbL) — openstreetmap.org/copyright
               </li>

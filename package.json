@@ -2,7 +2,7 @@
   "name": "chennai-metro-3d",
   "version": "0.1.0",
   "private": true,
-  "description": "Chennai Metro 3D — an interactive real-time 3D ride along Chennai Metro Line 4.",
+  "description": "Chennai Metro 3D: ride all five Chennai Metro lines in real-time 3D on the real track through the real city.",
   "scripts": {
     "predev": "node scripts/build-worker.mjs",
     "dev": "next dev",
