@@ -355,19 +355,12 @@ export function buildNose(x0: number): NoseParts {
     lamps.push(patch(x0, { zc: s * 1.2, yc: LAMP_Y - 0.02, hz: 0.03, hy: 0.03, n: 2, lift: 0.024, rings: 1, segments: 12 }, "#ffffff"));
   }
 
-  // Cab frame from the inside: windscreen pillars, console and header. Each piece
+  // Cab frame from the inside: console and header. Each piece
   // stops short of the face at its outermost corner so nothing pokes through.
   const inside = (y0: number, y1: number, z0: number, z1: number, gap: number) =>
     x0 + Math.min(faceX(y0, z0), faceX(y0, z1), faceX(y1, z0), faceX(y1, z1)) - gap;
   const frame: BufferGeometry[] = [];
-  for (const s of [-1, 1]) {
-    for (let y = 1.95; y < 3.25; y += 0.13) {
-      const z0 = s * 1.04;
-      const z1 = s * 1.18;
-      const x = inside(y, y + 0.135, z0, z1, 0.05);
-      frame.push(slab(x - 0.08, x, y, y + 0.135, Math.min(z0, z1), Math.max(z0, z1), C.coupler));
-    }
-  }
+  // (The windscreen pillars are the cab lining's edge now: buildCabLining.)
   frame.push(slab(x0 + 0.9, inside(1.13, 1.82, -1.1, 1.1, 0.12), 1.13, 1.82, -1.1, 1.1, C.coupler));
   frame.push(slab(x0 - 0.2, inside(3.42, 3.5, -1.05, 1.05, 0.06), 3.42, 3.5, -1.05, 1.05, C.coupler));
 
@@ -390,4 +383,99 @@ export function buildNose(x0: number): NoseParts {
     frame: join(frame),
     beam: [x0 + faceX(LAMP_Y, 0) + 0.05, LAMP_Y, 0],
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* The cab from inside                                                  */
+/* ------------------------------------------------------------------ */
+
+/** Windscreen opening in the lining: a little inside the glass, so its edge hides behind the mask. */
+const SCREEN = { yc: 2.6, hz: 1.06, hy: 0.58, n: 5 };
+/** How far the lining sits behind the outer face. */
+const LINING_INSET = 0.04;
+
+export interface CabLiningColours {
+  wall: string;
+  floor: string;
+  ceiling: string;
+  /** The inside of the front, round the windscreen. */
+  front: string;
+}
+
+/**
+ * The inside of the cab: walls, floor and ceiling from the bulkhead to the
+ * front, and the front itself with the windscreen left open. The outer shell
+ * only faces outwards, so without this the cab is see-through from the saloon
+ * and the driver's seat. Faces point inwards; from outside it is hidden inside
+ * the shell. Floor and ceiling meet the saloon's (inner half-width `halfIn`,
+ * floor top `floorY`, ceiling `ceilY`).
+ */
+export function buildCabLining(x0: number, halfIn: number, floorY: number, ceilY: number, colours: CabLiningColours): BufferGeometry {
+  const scale = halfIn / W;
+  // The outline drawn in: inside the side walls, from the saloon floor to its ceiling.
+  const ring = outline(96).map(([y, z]) => [Math.min(ceilY, Math.max(floorY, y <= SHELL_BOTTOM + 1e-6 ? floorY : y)), z * scale] as [number, number]);
+  const M = ring.length;
+  const front = (y: number, z: number) => x0 + faceX(y, z) - LINING_INSET;
+
+  // Walls (with floor and ceiling): each outline segment run from the bulkhead to the front.
+  const wp: number[] = [];
+  const wi: number[] = [];
+  for (const [y, z] of ring) wp.push(x0, y, z, front(y, z), y, z);
+  for (let j = 0; j < M; j++) {
+    const k = (j + 1) % M;
+    const a = 2 * j;
+    const b = 2 * k;
+    // The shell's winding reversed: these face into the cab.
+    wi.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+
+  // Front: rings from the outline in to the windscreen's edge, so the opening is smooth.
+  const R = 16;
+  const fp: number[] = [];
+  const fi: number[] = [];
+  const edge = ring.map(([by, bz]) => {
+    const dy = by - SCREEN.yc;
+    const dz = bz;
+    const len = Math.hypot(dy, dz) || 1;
+    // Where this direction from the screen centre meets the screen's superellipse...
+    const t = Math.pow(Math.pow(Math.abs(dz / len) / SCREEN.hz, SCREEN.n) + Math.pow(Math.abs(dy / len) / SCREEN.hy, SCREEN.n), -1 / SCREEN.n);
+    // ...kept a little inside the outline where the screen runs up to the ceiling.
+    const k = Math.min(t, len * 0.97) / len;
+    return [SCREEN.yc + dy * k, dz * k] as [number, number];
+  });
+  for (let r = 0; r <= R; r++) {
+    const f = r / R;
+    ring.forEach(([by, bz], j) => {
+      const y = by + (edge[j][0] - by) * f;
+      const z = bz + (edge[j][1] - bz) * f;
+      fp.push(front(y, z), y, z);
+    });
+  }
+  for (let r = 0; r < R; r++) {
+    for (let j = 0; j < M; j++) {
+      const k = (j + 1) % M;
+      const a = r * M + j;
+      const b = r * M + k;
+      fi.push(a, a + M, b, b, a + M, b + M);
+    }
+  }
+
+  const walls = geometryFrom(wp, wi, colours.wall);
+  // Floor and ceiling strips in their own colours.
+  const pos = walls.getAttribute("position");
+  const col = walls.getAttribute("color") as BufferAttribute;
+  const floor = new Color(colours.floor);
+  const ceiling = new Color(colours.ceiling);
+  for (let i = 0; i < pos.count; i += 3) {
+    const ys = [pos.getY(i), pos.getY(i + 1), pos.getY(i + 2)];
+    const c = ys.every((y) => y <= floorY + 1e-4) ? floor : ys.every((y) => y >= ceilY - 1e-4) ? ceiling : null;
+    if (c) for (let k = 0; k < 3; k++) col.setXYZ(i + k, c.r, c.g, c.b);
+  }
+  const face = geometryFrom(fp, fi, colours.front);
+  const out = mergeGeometries([walls, face], false);
+  walls.dispose();
+  face.dispose();
+  if (!out) throw new Error("Failed to merge the cab lining");
+  out.computeBoundingSphere();
+  return out;
 }

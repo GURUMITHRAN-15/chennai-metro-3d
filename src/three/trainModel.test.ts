@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { Box3, Color, type BufferGeometry } from "three";
 import { buildCar, DRIVER_EYE, LIVERY, NOSE_TIP } from "./trainModel.ts";
-import { buildNose, faceX } from "./trainNose.ts";
+import { buildCabLining, buildNose, faceX } from "./trainNose.ts";
 import { TRAIN } from "./layout.ts";
 
 const bounds = (g: BufferGeometry) => new Box3().setFromBufferAttribute(g.getAttribute("position") as never);
@@ -135,4 +135,30 @@ test("no roof face lies on the outer side wall below the band (z-fighting)", () 
     }
     assert.equal(roofOnWall, 0);
   }
+});
+
+test("the cab is lined inside: closed round the driver, open through the windscreen", async () => {
+  const { Mesh, MeshBasicMaterial, Raycaster, Vector3 } = await import("three");
+  const x0 = HALF - 2.3;
+  const halfIn = TRAIN.width / 2 - 0.07;
+  const lining = buildCabLining(x0, halfIn, 1.13, 3.16, { wall: "#ffffff", floor: "#000000", ceiling: "#ffffff", front: "#333333" });
+  const pos = lining.getAttribute("position");
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i) - x0;
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    assert.ok(x < faceX(y, z) - 0.02 && x >= -1e-6, `lining vertex x ${x.toFixed(3)} at y ${y.toFixed(2)} z ${z.toFixed(2)} leaves the shell`);
+    assert.ok(Math.abs(z) <= halfIn + 1e-6 && y >= 1.13 - 1e-6 && y <= 3.16 + 1e-6, "inside the saloon's section");
+  }
+  // Faces point into the cab, so a front-side raycast from the driver's eye finds them.
+  const mesh = new Mesh(lining, new MeshBasicMaterial());
+  const eye = new Vector3(DRIVER_EYE.x, DRIVER_EYE.y, DRIVER_EYE.z);
+  const hits = (dx: number, dy: number, dz: number) => new Raycaster(eye, new Vector3(dx, dy, dz).normalize()).intersectObject(mesh).length > 0;
+  assert.ok(!hits(1, 0, 0) && !hits(1, -0.1, 0.4), "the windscreen is open");
+  assert.ok(hits(0, 0, 1) && hits(0, 0, -1), "side walls");
+  assert.ok(hits(0, 1, 0) && hits(0, -1, 0), "ceiling and floor");
+  assert.ok(hits(1, -0.9, 0), "below the windscreen");
+  // From the saloon, looking into the cab's corner (the gap that was see-through).
+  const saloon = new Vector3(x0 - 0.4, 2.75, 0);
+  assert.ok(new Raycaster(saloon, new Vector3(1, 0, 0.85).normalize()).intersectObject(mesh).length > 0, "cab corner closed from the saloon");
 });

@@ -1,7 +1,7 @@
 import { BoxGeometry, BufferAttribute, BufferGeometry, Color, CylinderGeometry, ExtrudeGeometry, Shape, Vector3 } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { TRAIN } from "./layout.ts";
-import { buildNose, NOSE_DEPTH, paint } from "./trainNose.ts";
+import { buildCabLining, buildNose, NOSE_DEPTH, paint } from "./trainNose.ts";
 
 /**
  * Procedural metro car, built in car-local space:
@@ -346,7 +346,10 @@ export function buildCar(kind: CarKind): CarGeometry {
   let noseOut: BufferGeometry | null = null;
   let windshield: BufferGeometry | null = null;
   let beam: [number, number, number] | null = null;
+  let cabLining: BufferGeometry | null = null;
   if (isCab) {
+    // The shell faces outwards only: line the cab so it is closed from the saloon and the driver's seat.
+    cabLining = buildCabLining(xFront, PANEL_IN, 1.13, 3.16, { wall: LIVERY.lining, floor: "#545d68", ceiling: "#eef1f3", front: "#858d96" });
     const nose = buildNose(xFront);
     noseOut = nose.shell;
     windshield = nose.glass;
@@ -391,7 +394,7 @@ export function buildCar(kind: CarKind): CarGeometry {
   return {
     kind,
     body: (() => {
-      const g = mergeGeometries([paintBody(merge(body)), paint(merge(blueStripe), LIVERY.blue)], false);
+      const g = mergeGeometries([paintBody(merge(body)), paint(merge(blueStripe), LIVERY.blue), ...(cabLining ? [cabLining] : [])], false);
       if (!g) throw new Error("Failed to merge the car body");
       g.computeBoundingSphere();
       return g;
