@@ -8,14 +8,16 @@ import type { SimulationState } from "../../simulation/types";
 import { formatClock } from "../../utils/format";
 
 export function PlayButton({ engine, snap, size = 44 }: { engine: SimulationEngine; snap: SimulationState; size?: number }) {
-  const label = snap.finished ? "Ride again" : snap.isPlaying ? "Pause" : snap.elapsed > 0 ? "Resume" : "Start journey";
+  // Walk mode: the train waits at the platform until the passenger on foot has boarded.
+  const label = snap.held ? "The train leaves once you are on board" : snap.finished ? "Ride again" : snap.isPlaying ? "Pause" : snap.elapsed > 0 ? "Resume" : "Start journey";
   return (
     <button
       type="button"
       onClick={() => engine.toggle()}
+      disabled={snap.held}
       aria-label={label}
-      title={`${label} (Space)`}
-      className="inline-flex shrink-0 items-center justify-center rounded-full bg-ink text-bg transition-transform active:scale-95"
+      title={snap.held ? label : `${label} (Space)`}
+      className="inline-flex shrink-0 items-center justify-center rounded-full bg-ink text-bg transition-transform active:scale-95 disabled:opacity-40"
       style={{ width: size, height: size }}
     >
       {snap.finished ? <Restart size={18} /> : snap.isPlaying ? <Pause size={16} /> : <Play size={16} />}
@@ -51,6 +53,7 @@ export function Timeline({ engine, snap }: { engine: SimulationEngine; snap: Sim
         value={Math.round(snap.elapsed)}
         aria-label="Journey timeline"
         aria-valuetext={`${formatClock(snap.elapsed)} of ${formatClock(snap.duration)}`}
+        disabled={snap.held}
         onChange={(e) => engine.seek(Number(e.target.value))}
         style={{ ["--progress" as string]: `${pct}%` }}
       />

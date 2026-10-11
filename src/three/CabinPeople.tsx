@@ -93,13 +93,13 @@ function shuffle<T>(items: T[], rng: Rng): T[] {
   return a;
 }
 
-function buildPeople(kind: CarKind, carIndex: number, factor: number, women: boolean): BufferGeometry | null {
+function buildPeople(kind: CarKind, carIndex: number, factor: number, women: boolean, standees = true): BufferGeometry | null {
   const layout = cabinLayout(kind);
   const rng = mulberry32(carIndex * 977 + 31);
   const { seated, standing } = slotsFor(layout, carIndex);
   // Seats fill first; people start standing once the car is about a third full.
   const nSeated = Math.round(Math.min(1, factor * 1.35) * seated.length);
-  const nStanding = Math.round(Math.min(1, Math.max(0, (factor - 0.35) / 0.65)) * standing.length);
+  const nStanding = standees ? Math.round(Math.min(1, Math.max(0, (factor - 0.35) / 0.65)) * standing.length) : 0;
   const chosen = [...shuffle(seated, rng).slice(0, nSeated), ...shuffle(standing, rng).slice(0, nStanding)];
   if (!chosen.length) return null;
 
@@ -146,7 +146,9 @@ export function CabinPeople({ kind, carIndex, women }: { kind: CarKind; carIndex
   const factor = crowdFactor(crowd, hour + 0.5);
   // Quantise so small clock changes don't rebuild the mesh.
   const level = Math.round(factor * 20) / 20;
-  const geometry = useMemo(() => buildPeople(kind, carIndex, level, women), [kind, carIndex, level, women]);
+  // In Walk mode the aisles stay clear for the passenger on foot: everyone else is seated.
+  const walking = useViewStore((s) => s.cameraMode === "walk");
+  const geometry = useMemo(() => buildPeople(kind, carIndex, level, women, !walking), [kind, carIndex, level, women, walking]);
   const material = useMemo(() => new MeshStandardMaterial({ vertexColors: true, roughness: 0.85 }), []);
   useEffect(() => () => geometry?.dispose(), [geometry]);
   useEffect(() => () => material.dispose(), [material]);

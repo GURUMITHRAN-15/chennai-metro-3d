@@ -402,6 +402,8 @@ export interface SimulationState {
   etaNext: number;
   arrival: ArrivalPhase;
   finished: boolean;
+  /** The train is held at the platform until the passenger on foot boards (Walk mode). */
+  held: boolean;
 }
 
 export type ArrivalPhase =

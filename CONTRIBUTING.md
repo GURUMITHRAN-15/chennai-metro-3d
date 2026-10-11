@@ -23,7 +23,7 @@ npm run lint
 npm run typecheck
 ```
 
-All three should pass. For anything visible, also look at it in the browser: at least one route, by day and night, in the Cinematic and Driver cameras, and on a phone-width window if you changed the UI.
+All three should pass. For anything visible, also look at it in the browser: at least one route, by day and night, in the Cinematic and Driver cameras, and on a phone-width window if you changed the UI. If you changed a station, also walk through it (press 6, or add `&walk=1`).
 
 ## Data
 
@@ -52,6 +52,7 @@ Downloads are cached in `data-cache/` (not committed). If the real track or a st
 - `src/simulation/` is framework-agnostic: no React, no three.js. Keep it that way, and add a test for changes to motion, stops or timing.
 - The 3D scene reads `engine.sample` inside `useFrame`. Avoid per-frame React state.
 - Pages that don't need 3D (`/routes`, `/stations`) must not import three.js.
+- A station's inside is laid out in `src/three/walkPlan.ts`. Change a measurement there, not in the model or the walk code: both read it, so the walls you draw and the floor you can walk on stay the same thing.
 - `public/world/tileWorker.js` is built from `src/three/world/tileWorker.ts` by `scripts/build-worker.mjs`. Edit the TypeScript; the bundle is not committed.
 - Match the surrounding code's naming, comments and style.
 

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import type { SimulationEngine } from "../simulation/SimulationEngine";
 import { useViewStore } from "../simulation/store";
 import { createNoiseBuffer, duckLevel, getAudioContext } from "../utils/audio";
+import { walkingAboard } from "../three/walkState";
 
 /**
  * Sounds inside the car, heard only from the Passenger camera: the air
@@ -116,7 +117,7 @@ export function useCabinSounds(engine: SimulationEngine, { enabled, volume }: { 
 
     const audible = () => {
       const mode = useViewStore.getState().cameraMode;
-      return opts.current.enabled && !hidden && engine.started && mode === "passenger";
+      return opts.current.enabled && !hidden && engine.started && (mode === "passenger" || (mode === "walk" && walkingAboard()));
     };
 
     const tick = (now: number) => {

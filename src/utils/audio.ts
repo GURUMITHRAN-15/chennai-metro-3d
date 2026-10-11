@@ -36,6 +36,36 @@ export function getAudioContext(): AudioContext | null {
   return ctx;
 }
 
+/** Ticket-gate beep: two rising tones when the ticket is accepted, one low buzz when it is not. Silent without audio. */
+export function gateBeep(ok = true) {
+  const c = getAudioContext();
+  if (!c) return;
+  try {
+    const t0 = c.currentTime + 0.02;
+    const tones: [number, number, number][] = ok
+      ? [
+          [1180, 0, 0.11],
+          [1580, 0.13, 0.11],
+        ]
+      : [[240, 0, 0.32]];
+    tones.forEach(([freq, at, len]) => {
+      const osc = c.createOscillator();
+      const g = c.createGain();
+      osc.type = "square";
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(0, t0 + at);
+      g.gain.linearRampToValueAtTime(0.07, t0 + at + 0.01);
+      g.gain.setValueAtTime(0.07, t0 + at + len - 0.02);
+      g.gain.linearRampToValueAtTime(0, t0 + at + len);
+      osc.connect(g).connect(c.destination);
+      osc.start(t0 + at);
+      osc.stop(t0 + at + len + 0.03);
+    });
+  } catch {
+    // A beep is a nice-to-have.
+  }
+}
+
 /** A few seconds of noise to loop. Brown noise is a deep road rumble; white noise is tyre hiss. */
 export function createNoiseBuffer(c: BaseAudioContext, colour: "brown" | "white", seconds = 4): AudioBuffer {
   const length = Math.floor(c.sampleRate * seconds);

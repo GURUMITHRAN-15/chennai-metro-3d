@@ -442,3 +442,25 @@ test("every line builds from the real network and a train can run it end to end"
     assert.ok(run.duration > 600 && run.duration < 7200, `${r.id}: ${(run.duration / 60).toFixed(0)} min`);
   }
 });
+
+test("a held train waits at the platform until it is released", () => {
+  const route = buildRouteModel(data);
+  const engine = new SimulationEngine(route, "poonamallee-bypass", "poonamallee");
+  engine.setHeld(true);
+  engine.play();
+  engine.update(1);
+  engine.seek(60);
+  assert.equal(engine.clock.time, 0, "play and seek do nothing while held");
+  assert.ok(!engine.started && engine.getSnapshot().held && !engine.getSnapshot().isPlaying);
+  assert.equal(engine.sample.door, 1, "doors stay open for boarding");
+  engine.setHeld(false);
+  engine.play();
+  engine.update(0.1);
+  assert.ok(engine.started && engine.clock.time > 0 && !engine.getSnapshot().held);
+  // Holding a moving train stops the clock; reset puts it back at the origin, not yet started.
+  engine.setHeld(true);
+  assert.ok(!engine.clock.playing);
+  engine.setHeld(false);
+  engine.reset();
+  assert.ok(!engine.started && engine.clock.time === 0 && engine.getSnapshot().state === "idle");
+});

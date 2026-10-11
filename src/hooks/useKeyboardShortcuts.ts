@@ -6,7 +6,7 @@ export type ShortcutMap = Record<string, (e: KeyboardEvent) => void>;
 
 export const SHORTCUT_HELP: { keys: string; action: string }[] = [
   { keys: "Space", action: "Play / pause" },
-  { keys: "1 – 5", action: "Camera: cinematic, driver, passenger, map, free" },
+  { keys: "1 – 6", action: "Camera: cinematic, driver, passenger, map, free, walk" },
   { keys: "[  ]", action: "Slower / faster" },
   { keys: "← →", action: "Skip 10 s (when the timeline isn't focused)" },
   { keys: "N", action: "Day / night" },
@@ -15,6 +15,14 @@ export const SHORTCUT_HELP: { keys: string; action: string }[] = [
   { keys: "F", action: "Fullscreen" },
   { keys: ",", action: "Settings" },
   { keys: "?", action: "Keyboard shortcuts" },
+];
+
+/** Walk mode takes over the movement keys (W and S stop being weather and route panel there). */
+export const WALK_SHORTCUT_HELP: { keys: string; action: string }[] = [
+  { keys: "W A S D", action: "Walk (arrow keys work too)" },
+  { keys: "Shift", action: "Run" },
+  { keys: "Mouse", action: "Look around: click the view to capture the mouse, Esc to free it" },
+  { keys: "E", action: "Use: buy a ticket, scan it at a gate, drop it in the box" },
 ];
 
 const RANGE_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End", "PageUp", "PageDown"]);

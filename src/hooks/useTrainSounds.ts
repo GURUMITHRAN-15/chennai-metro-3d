@@ -5,6 +5,7 @@ import type { SimulationEngine } from "../simulation/SimulationEngine";
 import { trainSoundLayers, type ClipLengths, type TrainClip } from "../simulation/trainSoundPlan";
 import { useViewStore } from "../simulation/store";
 import { duckLevel } from "../utils/audio";
+import { walkingAboard } from "../three/walkState";
 
 // Under GitHub Pages the site lives below a base path (e.g. /chennai-metro-3d).
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
@@ -88,7 +89,7 @@ export function useTrainSounds(engine: SimulationEngine, { enabled, volume }: { 
       const dt = Math.min((now - last) / 1000, 0.1);
       last = now;
       const mode = useViewStore.getState().cameraMode;
-      const want = opts.current.enabled && !hidden && engine.started && (mode === "driver" || mode === "passenger");
+      const want = opts.current.enabled && !hidden && engine.started && (mode === "driver" || mode === "passenger" || (mode === "walk" && walkingAboard()));
       fade = Math.max(0, Math.min(1, fade + (want ? dt : -dt) / MODE_FADE_S));
 
       if (!tracksRef.current) {

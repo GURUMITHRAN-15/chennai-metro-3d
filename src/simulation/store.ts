@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-export type CameraMode = "cinematic" | "driver" | "passenger" | "map" | "free";
+export type CameraMode = "cinematic" | "driver" | "passenger" | "map" | "free" | "walk";
 export type TimeOfDay = "day" | "night";
 export type Weather = "clear" | "cloudy" | "rain";
 export type Quality = "high" | "medium" | "low";
@@ -15,6 +15,7 @@ export const CAMERA_MODES: { id: CameraMode; label: string; key: string }[] = [
   { id: "passenger", label: "Passenger", key: "3" },
   { id: "map", label: "Map", key: "4" },
   { id: "free", label: "Free Camera", key: "5" },
+  { id: "walk", label: "Walk", key: "6" },
 ];
 
 export interface Settings {
