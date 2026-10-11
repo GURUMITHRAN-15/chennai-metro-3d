@@ -93,7 +93,7 @@ If loading takes longer than 12 seconds, the page says so, explains the likely c
   - Play/pause, 0.5×/1×/2×/4× and a scrubbable timeline.
   - Day/night, and clear, cloudy or rain.
   - Settings: graphics quality, reduced motion, audio, shadows, traffic and camera shake.
-  - **Keyboard:** Space (play/pause), 1–5 (cameras), `[` `]` (speed), ← → (skip 10 s), N (night), W (weather), S (route panel), F (fullscreen), `,` (settings).
+  - **Keyboard:** Space (play/pause), 1–5 (cameras), `[` `]` (speed), ← → (skip 10 s), N (night), W (weather), S (route panel), F (fullscreen), `,` (settings), `?` (all shortcuts).
 - **Resilience:** without WebGL, or if the scene crashes, the same journey continues on a live 2D route map. Force this with `?webgl=0`.
 
 ## Architecture
