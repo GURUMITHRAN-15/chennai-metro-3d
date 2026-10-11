@@ -10,6 +10,7 @@ import { statusChip } from "../lib/lines";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const WORDS: Record<number, string> = { 4: "Four", 5: "Five", 6: "Six" };
+const lineNumber = (name: string) => Number(name.replace(/\D/g, "")) || 0;
 
 /** Real views from the simulator (public/landing, captured from the running app). */
 const VIEWS = [
@@ -27,7 +28,11 @@ export default function HomePage() {
 
   return (
     <>
-      <Hero stations={network.stations.length} ride={{ href: simulatorHref(first.id), label: `Ride ${first.lineName}` }} />
+      <Hero
+        stations={network.stations.length}
+        ride={{ href: simulatorHref(first.id), label: `Ride ${first.lineName}` }}
+        lineColours={[...network.lines].sort((a, b) => lineNumber(a.name) - lineNumber(b.name)).map((l) => l.colour)}
+      />
 
       <section aria-labelledby="lines-heading" className="px-5 pb-24 pt-24 sm:px-8 lg:px-12 lg:pb-32 lg:pt-32">
         <h2 id="lines-heading" className="max-w-[52rem] text-[clamp(2rem,4.2vw,3.4rem)] font-semibold leading-[1.06] tracking-[-0.03em]">

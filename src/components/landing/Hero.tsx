@@ -15,9 +15,13 @@ export interface HeroProps {
   stations: number;
   /** The journey the main button starts. */
   ride: { href: string; label: string };
+  /** The lines' colours, Line 1 first: they fill "Chennai Metro." in the headline. */
+  lineColours: string[];
 }
 
-export function Hero({ stations, ride }: HeroProps) {
+export function Hero({ stations, ride, lineColours }: HeroProps) {
+  // Lifted a little towards white so the darker ones (the Purple Line) still read on the dusk scene.
+  const fill = `linear-gradient(90deg, ${lineColours.map((c) => `color-mix(in oklab, ${c} 78%, white)`).join(", ")})`;
   const webgl = useWebGL();
   const reduced = usePrefersReducedMotion();
   const [sceneReady, setSceneReady] = useState(false);
@@ -57,7 +61,9 @@ export function Hero({ stations, ride }: HeroProps) {
           <h1 id="hero-title" className="text-[clamp(2.75rem,7vw,5.25rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
             Ride the
             <br />
-            Chennai Metro.
+            <span className="headline-lines" style={{ ["--line-fill" as string]: fill }}>
+              Chennai Metro.
+            </span>
           </h1>
           <p className="max-w-[30rem] text-[17px] leading-[1.5] text-[#c3cbd6] sm:text-[19px]">
             All five lines on their real track: over the viaducts, through the tunnels and into {stations} stations. Drawn live, in your
