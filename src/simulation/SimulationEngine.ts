@@ -33,6 +33,11 @@ export class SimulationEngine {
   readonly sample: TrainSample = createSample();
   /** True once the user has pressed play at least once. */
   started = false;
+  /**
+   * The train is held at the platform: play and seek do nothing. Walk mode
+   * sets this until the passenger on foot has boarded.
+   */
+  held = false;
   private snapshot: SimulationState;
   private listeners = new Set<Listener>();
   private eventListeners = new Set<EventListener>();
@@ -114,6 +119,7 @@ export class SimulationEngine {
       etaNext: etaToNext(s, this.trajectory.stops),
       arrival: phase,
       finished: this.started && this.clock.finished,
+      held: this.held,
     };
   }
 
@@ -127,7 +133,16 @@ export class SimulationEngine {
     this.listeners.forEach((l) => l());
   }
 
+  /** Hold the train where it is, or release it. */
+  setHeld(held: boolean) {
+    if (this.held === held) return;
+    this.held = held;
+    if (held) this.clock.playing = false;
+    this.forceNotify();
+  }
+
   play() {
+    if (this.held) return;
     if (this.clock.finished) this.clock.seek(0);
     this.started = true;
     this.clock.playing = true;
@@ -150,6 +165,7 @@ export class SimulationEngine {
   }
 
   seek(time: number) {
+    if (this.held) return;
     this.started = true;
     this.clock.seek(time);
     this.forceNotify();
@@ -157,6 +173,14 @@ export class SimulationEngine {
 
   restart() {
     this.clock.seek(0);
+    this.forceNotify();
+  }
+
+  /** Back to the origin platform as before the first departure: doors open, waiting. */
+  reset() {
+    this.clock.playing = false;
+    this.clock.seek(0);
+    this.started = false;
     this.forceNotify();
   }
 

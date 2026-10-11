@@ -187,6 +187,16 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
         >
           Start Journey <ArrowRight size={18} />
         </Link>
+        <Link
+          href={same ? "#" : `${href}&walk=1`}
+          aria-disabled={same}
+          onClick={(e) => {
+            if (same) e.preventDefault();
+          }}
+          className={buttonClass("secondary", "md", `w-full ${same ? "pointer-events-none opacity-40" : ""}`)}
+        >
+          Walk it as a passenger
+        </Link>
       </section>
 
       <section aria-label="Route map" className="relative min-h-[420px] flex-1 overflow-hidden rounded-2xl border border-line bg-[#0a0f18]">

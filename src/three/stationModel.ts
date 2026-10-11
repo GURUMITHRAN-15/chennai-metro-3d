@@ -2,6 +2,7 @@ import {
   BufferAttribute, BoxGeometry, BufferGeometry, CylinderGeometry, ExtrudeGeometry, PlaneGeometry, Shape } from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { ROAD, STATION, VIADUCT } from "./layout.ts";
+import { CONCOURSE, concoursePlan, type ConcoursePlan } from "./walkPlan.ts";
 
 /**
  * Elevated side-platform station in station-local space: origin on the
@@ -68,6 +69,8 @@ function platformLevel(
   rail: number,
   out: Record<keyof StationGeometry, BufferGeometry[]>,
   withCanopy: boolean,
+  /** Opening in each outer screen wall (the way to the escalator landing). */
+  gap?: { x0: number; x1: number },
 ) {
   const L = d.platformLength;
   const edge = d.trackCentres / 2 + 1.52;
@@ -83,8 +86,16 @@ function platformLevel(
     out.tactile.push(box(-L / 2, L / 2, top - 0.01, top + 0.012, y0, y1));
     // Outer screen wall.
     const [g0, g1] = s < 0 ? [-(outer + 0.06), -outer] : [outer, outer + 0.06];
-    out.glass.push(box(-L / 2, L / 2, top, top + 1.4, g0, g1));
-    out.steel.push(box(-L / 2, L / 2, top + 1.38, top + 1.46, g0 - 0.02, g1 + 0.02));
+    const runs: [number, number][] = gap
+      ? [
+          [-L / 2, gap.x0],
+          [gap.x1, L / 2],
+        ]
+      : [[-L / 2, L / 2]];
+    for (const [a, b] of runs) {
+      out.glass.push(box(a, b, top, top + 1.4, g0, g1));
+      out.steel.push(box(a, b, top + 1.38, top + 1.46, g0 - 0.02, g1 + 0.02));
+    }
     if (withCanopy) {
       for (let x = -L / 2 + 4; x <= L / 2 - 4 + 0.01; x += 11.5) {
         const c = new CylinderGeometry(0.2, 0.2, STATION.canopyHeight - d.platformHeight, 10);
@@ -101,6 +112,134 @@ function platformLevel(
     }
   }
   if (withCanopy) out.roof.push(canopy(L + 8, rail + STATION.canopyHeight, STATION.halfWidth + 0.8));
+}
+
+/**
+ * A box lying along the line (x0, y0) → (x1, y1): `thickness` deep, its top
+ * face `drop` below that line (negative = above it), spanning z0..z1.
+ */
+function inclined(x0: number, y0: number, x1: number, y1: number, thickness: number, z0: number, z1: number, drop = 0): BufferGeometry {
+  const len = Math.hypot(x1 - x0, y1 - y0);
+  const g = new BoxGeometry(len, thickness, Math.abs(z1 - z0));
+  g.translate(0, -thickness / 2 - drop, 0);
+  g.rotateZ(Math.atan2(y1 - y0, x1 - x0));
+  g.translate((x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2);
+  return g.toNonIndexed();
+}
+
+/**
+ * The concourse as a hollow hall (walkPlan.ts): floor and roof slabs, the
+ * roof opened over each escalator bank, glazed side walls and end walls with
+ * a street doorway at each corner.
+ */
+function concourseShell(plan: ConcoursePlan, out: Record<keyof StationGeometry, BufferGeometry[]>) {
+  const cl = plan.halfLength;
+  const cw = plan.halfWidth;
+  const cb = plan.floorY - CONCOURSE.floorSlab;
+  const ct = plan.ceilY + CONCOURSE.roofSlab;
+  const o = plan.roofOpening;
+  const D = CONCOURSE.door;
+  const w = CONCOURSE.endWall;
+  out.concrete.push(box(-cl, cl, cb, plan.floorY, -cw, cw));
+  out.concrete.push(box(-cl, o.x0, plan.ceilY, ct, -cw, cw));
+  out.concrete.push(box(o.x1, cl, plan.ceilY, ct, -cw, cw));
+  for (const [z0, z1] of [
+    [-cw, -o.z1],
+    [-o.z0, o.z0],
+    [o.z1, cw],
+  ]) {
+    out.concrete.push(box(o.x0, o.x1, plan.ceilY, ct, z0, z1));
+  }
+  for (const s of [-1, 1]) {
+    out.facade.push(box(-cl + 0.3, cl - 0.3, plan.floorY, plan.ceilY, s * (cw - CONCOURSE.sideWall), s * (cw - 0.3)));
+  }
+  for (const x of [-cl, cl]) {
+    out.concrete.push(box(x - w, x + w, cb, ct, -D.z0, D.z0));
+    for (const s of [-1, 1]) {
+      out.concrete.push(box(x - w, x + w, cb, ct, s * D.z1, s * cw));
+      out.concrete.push(box(x - w, x + w, plan.floorY + D.height, ct, s * D.z0, s * D.z1));
+      out.concrete.push(box(x - w, x + w, cb, plan.floorY, s * D.z0, s * D.z1));
+    }
+  }
+}
+
+/**
+ * Beside each platform: an up and a down escalator from the paid concourse
+ * to a landing at platform level, under a light roof. The treads here are a
+ * plain dark ramp; the moving steps are drawn where a passenger is walking
+ * (WalkMode.tsx).
+ */
+function escalatorBanks(plan: ConcoursePlan, out: Record<keyof StationGeometry, BufferGeometry[]>) {
+  const E = CONCOURSE.escalator;
+  const { x0, x1 } = plan.escalator;
+  const F = plan.floorY;
+  const P = plan.platformY;
+  const Ld = plan.landing;
+  const roofTop = plan.ceilY + CONCOURSE.roofSlab;
+  for (const s of [-1, 1]) {
+    for (const [a, b] of [E.up, E.down]) {
+      const zc = (s * (a + b)) / 2;
+      const half = E.stepWidth / 2;
+      // Truss, the tread ramp just under the step line, glass balustrades and handrails.
+      out.steel.push(inclined(x0, F, x1, P, 0.75, zc - half - 0.14, zc + half + 0.14, 0.14));
+      out.facade.push(inclined(x0, F, x1, P, 0.04, zc - half, zc + half, 0.12));
+      for (const e of [-1, 1]) {
+        const zb = zc + e * (half + 0.07);
+        out.glass.push(inclined(x0, F, x1, P, 0.95, zb - 0.02, zb + 0.02, -0.95));
+        out.facade.push(inclined(x0, F, x1, P, 0.07, zb - 0.05, zb + 0.05, -1.02));
+      }
+    }
+    // Landing: a slab off the back of the platform, on two columns standing on the concourse roof.
+    out.concrete.push(box(Ld.x0 - 0.4, Ld.x1, P - 0.3, P, s * plan.platformOuter, s * Ld.z1));
+    out.platformTop.push(box(Ld.x0 - 0.4, Ld.x1, P, P + 0.005, s * (plan.platformOuter + 0.06), s * Ld.z1));
+    for (const x of [Ld.x0 + 0.2, Ld.x1 - 0.3]) out.concrete.push(box(x - 0.2, x + 0.2, roofTop, P - 0.3, s * (Ld.z1 - 0.45), s * (Ld.z1 - 0.05)));
+    // Railings round the landing: the outer side, the far end, and the near end beside the escalators.
+    const rail = (xa: number, xb: number, za: number, zb: number) => {
+      out.glass.push(box(xa, xb, P, P + 1.1, za, zb));
+      out.steel.push(box(xa - 0.02, xb + 0.02, P + 1.08, P + 1.16, Math.min(za, zb) - 0.02, Math.max(za, zb) + 0.02));
+    };
+    rail(Ld.x0 - 0.4, Ld.x1, s * (Ld.z1 - 0.04), s * Ld.z1);
+    rail(Ld.x1 - 0.04, Ld.x1, s * plan.platformOuter, s * Ld.z1);
+    rail(Ld.x0 - 0.4, Ld.x0 - 0.36, s * plan.platformOuter, s * (E.up[0] - 0.1));
+    // A level roof over the landing and the heads of the escalators, on two slim posts.
+    out.roof.push(box(Ld.x0 - 1.6, Ld.x1 + 0.4, P + 2.9, P + 3.0, s * (plan.platformOuter + 1.2), s * (Ld.z1 + 0.45)));
+    for (const x of [Ld.x0 - 1.4, Ld.x1 + 0.2]) {
+      const c = new CylinderGeometry(0.06, 0.06, 2.9, 8);
+      c.translate(x, P + 1.45, s * (Ld.z1 + 0.3));
+      out.steel.push(c.toNonIndexed());
+    }
+  }
+}
+
+/** Street stairs at the four corners: a landing outside each doorway and one stepped flight down to the footpath. */
+function streetStairs(plan: ConcoursePlan, out: Record<keyof StationGeometry, BufferGeometry[]>) {
+  const S = CONCOURSE.stairs;
+  const F = plan.floorY;
+  const G = plan.streetY;
+  const { top, bottom, steps } = plan.stairs;
+  const tread = (bottom - top) / steps;
+  const riser = (F - G) / steps;
+  for (const s of [-1, 1]) {
+    const za = s * S.z0;
+    const zb = s * S.z1;
+    for (const xs of [-1, 1]) {
+      out.concrete.push(box(xs * (plan.halfLength + CONCOURSE.endWall), xs * top, F - 0.3, F, za, zb));
+      for (let k = 0; k < steps; k++) {
+        // Each tread sits half a riser off the walking line, so feet neither sink nor float on average.
+        const y = F - (k + 0.5) * riser;
+        out.concrete.push(box(xs * (top + k * tread), xs * (top + (k + 1) * tread), y - 0.55, y, za, zb));
+      }
+      // Two slim legs under the flight, and a handrail each side.
+      for (const f of [0.3, 0.62]) {
+        const x = xs * (top + f * (bottom - top));
+        out.concrete.push(box(x - 0.2, x + 0.2, 0, F - f * (F - G) - 0.5, s * (S.z0 + 0.8), s * (S.z1 - 0.8)));
+      }
+      for (const z of [za, zb]) {
+        for (const h of [0.55, 1.0]) out.steel.push(inclined(xs * top, F, xs * bottom, G, 0.05, z - 0.03, z + 0.03, -h - 0.05));
+        out.steel.push(box(xs * (plan.halfLength + CONCOURSE.endWall), xs * top, F + 0.98, F + 1.03, z - 0.03, z + 0.03));
+      }
+    }
+  }
 }
 
 /** Side concourses start this far out when a flyover runs down the middle of the road. */
@@ -130,7 +269,9 @@ export function buildStation(
     lights: [],
   };
   const R = d.rail;
-  platformLevel(d, R, out, !doubleDecker);
+  // A station over a flyover keeps its two closed side halls; every other one can be walked through.
+  const plan = overFlyover ? null : concoursePlan(d);
+  platformLevel(d, R, out, !doubleDecker, plan?.screenGap);
   if (doubleDecker) {
     platformLevel(d, R + d.upperDeck, out, true);
     // Columns tying the two levels together at the platform backs.
@@ -147,17 +288,19 @@ export function buildStation(
   const ct = cb + STATION.concourseHeight;
   const cl = STATION.concourseLength / 2;
   const cw = STATION.concourseHalfWidth;
-  const halls: [number, number][] = overFlyover
-    ? [
-        [-cw, -FLYOVER_CONCOURSE_INNER],
-        [FLYOVER_CONCOURSE_INNER, cw],
-      ]
-    : [[-cw, cw]];
-  for (const [z0, z1] of halls) {
-    out.concrete.push(box(-cl, cl, cb, cb + 0.6, z0, z1));
-    out.concrete.push(box(-cl, cl, ct - 0.5, ct, z0, z1));
-    out.facade.push(box(-cl + 0.3, cl - 0.3, cb + 0.6, ct - 0.5, z0 + 0.3, z1 - 0.3));
-    for (const x of [-cl, cl]) out.concrete.push(box(x - 0.4, x + 0.4, cb, ct, z0, z1));
+  if (plan) {
+    concourseShell(plan, out);
+    escalatorBanks(plan, out);
+  } else {
+    for (const [z0, z1] of [
+      [-cw, -FLYOVER_CONCOURSE_INNER],
+      [FLYOVER_CONCOURSE_INNER, cw],
+    ]) {
+      out.concrete.push(box(-cl, cl, cb, cb + 0.6, z0, z1));
+      out.concrete.push(box(-cl, cl, ct - 0.5, ct, z0, z1));
+      out.facade.push(box(-cl + 0.3, cl - 0.3, cb + 0.6, ct - 0.5, z0 + 0.3, z1 - 0.3));
+      for (const x of [-cl, cl]) out.concrete.push(box(x - 0.4, x + 0.4, cb, ct, z0, z1));
+    }
   }
   // Supports: median and footpaths only, never in a traffic lane (footpaths only over a flyover).
   for (const x of [-cl + 6, -8, 8, cl - 6]) {
@@ -168,24 +311,26 @@ export function buildStation(
       out.concrete.push(box(x - 0.6, x + 0.6, 0, cb, z - 0.6, z + 0.6));
     }
   }
-  // Stairs down to each footpath.
-  // Street stairs at about 32 degrees, whatever the concourse height.
-  const run = cb * 1.6;
-  const slope = Math.atan2(cb, run);
-  for (const s of [-1, 1]) {
-    for (const xs of [-1, 1]) {
-      const sz = s * (ROAD.halfWidth + 2.0);
-      let clear = true;
-      for (let k = 0; k <= 4; k++) if (blocked(xs * (cl + (run * k) / 4), sz, 1.2)) clear = false;
-      if (!clear) continue;
-      const g = new BoxGeometry(Math.hypot(run, cb), 0.45, 2.4);
-      g.rotateZ(-xs * slope);
-      g.translate(xs * (cl + run / 2), cb / 2, s * (ROAD.halfWidth + 2.0));
-      out.concrete.push(g.toNonIndexed());
-      const rail = new BoxGeometry(Math.hypot(run, cb), 0.06, 0.06);
-      rail.rotateZ(-xs * slope);
-      rail.translate(xs * (cl + run / 2), cb / 2 + 1.0, s * (ROAD.halfWidth + 3.2));
-      out.steel.push(rail.toNonIndexed());
+  if (plan) streetStairs(plan, out);
+  else {
+    // Ramps down to each footpath at about 32 degrees, whatever the concourse height.
+    const run = cb * 1.6;
+    const slope = Math.atan2(cb, run);
+    for (const s of [-1, 1]) {
+      for (const xs of [-1, 1]) {
+        const sz = s * (ROAD.halfWidth + 2.0);
+        let clear = true;
+        for (let k = 0; k <= 4; k++) if (blocked(xs * (cl + (run * k) / 4), sz, 1.2)) clear = false;
+        if (!clear) continue;
+        const g = new BoxGeometry(Math.hypot(run, cb), 0.45, 2.4);
+        g.rotateZ(-xs * slope);
+        g.translate(xs * (cl + run / 2), cb / 2, s * (ROAD.halfWidth + 2.0));
+        out.concrete.push(g.toNonIndexed());
+        const rail = new BoxGeometry(Math.hypot(run, cb), 0.06, 0.06);
+        rail.rotateZ(-xs * slope);
+        rail.translate(xs * (cl + run / 2), cb / 2 + 1.0, s * (ROAD.halfWidth + 3.2));
+        out.steel.push(rail.toNonIndexed());
+      }
     }
   }
 

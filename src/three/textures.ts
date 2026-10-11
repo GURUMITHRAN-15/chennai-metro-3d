@@ -747,3 +747,63 @@ export function makeDiamondPanelTexture(): Texture {
   tex.anisotropy = 4;
   return tex;
 }
+
+export interface SignTerminus {
+  name: string;
+  nameTa: string | null;
+}
+
+/**
+ * Wayfinding boards for a station concourse (concourseModel.ts SIGN): one
+ * atlas of two columns by four rows, English over Tamil on dark boards with
+ * an accent bar in the line's colour. Wording is generic, not CMRL's own.
+ */
+export function makeConcourseSignAtlas(lineColour: string, platform1: SignTerminus, platform2: SignTerminus): Texture {
+  const CW = 1024;
+  const CH = 256;
+  const { c, ctx } = canvas(CW * 2, CH * 4);
+  const f = fontFamilies();
+  ctx.fillStyle = "#0d1724";
+  ctx.fillRect(0, 0, c.width, c.height);
+  type Arrow = "up" | "down" | null;
+  const arrow = (x: number, y: number, dir: Exclude<Arrow, null>) => {
+    const k = dir === "up" ? -1 : 1;
+    ctx.beginPath();
+    ctx.moveTo(x, y + k * 62);
+    ctx.lineTo(x - 52, y + k * 4);
+    ctx.lineTo(x - 18, y + k * 4);
+    ctx.lineTo(x - 18, y - k * 60);
+    ctx.lineTo(x + 18, y - k * 60);
+    ctx.lineTo(x + 18, y + k * 4);
+    ctx.lineTo(x + 52, y + k * 4);
+    ctx.closePath();
+    ctx.fill();
+  };
+  const cell = (i: number, en: string, ta: string | null, accent: string, dir: Arrow = null) => {
+    const x = (i % 2) * CW;
+    const y = Math.floor(i / 2) * CH;
+    ctx.fillStyle = accent;
+    ctx.fillRect(x, y, 26, CH);
+    ctx.fillStyle = "#f5f7fa";
+    const left = dir ? 190 : 66;
+    if (dir) arrow(x + 108, y + CH / 2, dir);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    fitFont(ctx, en, 600, f.sans, ta ? 96 : 112, 44, CW - left - 40);
+    ctx.fillText(en, x + left, y + (ta ? 124 : 166));
+    if (ta) {
+      ctx.fillStyle = "#c9d1dc";
+      fitFont(ctx, ta, 500, f.tamil, 62, 30, CW - left - 40);
+      ctx.fillText(ta, x + left, y + 208);
+    }
+  };
+  const towards = (t: SignTerminus) => (t.nameTa ? `${t.nameTa} நோக்கி` : null);
+  cell(0, "TICKETS", "பயணச்சீட்டு", lineColour);
+  cell(1, "ENTRY", "நுழைவு", "#2fd67b", "up");
+  cell(2, "EXIT", "வெளியேறும் வழி", "#f2b705", "up");
+  cell(3, `PLATFORM 1 · ${platform1.name.toUpperCase()}`, towards(platform1), lineColour, "up");
+  cell(4, `PLATFORM 2 · ${platform2.name.toUpperCase()}`, towards(platform2), lineColour, "up");
+  cell(5, "WAY OUT", "வெளியே செல்லும் வழி", "#f2b705");
+  cell(6, "USED TICKETS", "பயன்படுத்திய சீட்டுகள்", "#f2b705", "down");
+  return finish(c, false);
+}

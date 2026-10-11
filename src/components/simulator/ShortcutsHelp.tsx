@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { Close } from "../ui/Icons";
 import { useViewStore } from "../../simulation/store";
-import { SHORTCUT_HELP } from "../../hooks/useKeyboardShortcuts";
+import { SHORTCUT_HELP, WALK_SHORTCUT_HELP } from "../../hooks/useKeyboardShortcuts";
 
 /** Quick-reference dialog for the keyboard shortcuts. Opened with `?` or the top-bar button. */
 export function ShortcutsHelp() {
@@ -63,6 +63,17 @@ export function ShortcutsHelp() {
               <div key={s.keys} className="contents">
                 <dt>
                   <kbd className="inline-block min-w-8 rounded-md border border-line bg-surface-2 px-2 py-0.5 text-center font-mono text-[12px] text-ink">{s.keys}</kbd>
+                </dt>
+                <dd className="self-center text-muted">{s.action}</dd>
+              </div>
+            ))}
+          </dl>
+          <h3 className="mb-2.5 mt-5 text-[11px] font-semibold tracking-[0.14em] text-muted">IN WALK MODE</h3>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 text-[13px]">
+            {WALK_SHORTCUT_HELP.map((s) => (
+              <div key={s.keys} className="contents">
+                <dt>
+                  <kbd className="inline-block min-w-8 whitespace-nowrap rounded-md border border-line bg-surface-2 px-2 py-0.5 text-center font-mono text-[12px] text-ink">{s.keys}</kbd>
                 </dt>
                 <dd className="self-center text-muted">{s.action}</dd>
               </div>

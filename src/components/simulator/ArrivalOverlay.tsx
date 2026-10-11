@@ -46,20 +46,27 @@ export function ArrivalOverlay({
   snap,
   autoplayBlocked,
   summaryShown = false,
+  walking = false,
 }: {
   engine: SimulationEngine;
   snap: SimulationState;
   autoplayBlocked: boolean;
   /** The JourneySummary card handles the finished state; don't draw the plain arrival screen. */
   summaryShown?: boolean;
+  /** Walk mode: the train waits for the passenger on foot, so there is no "Depart" screen. */
+  walking?: boolean;
 }) {
   const stops = engine.journey.stops;
   const current = stops[snap.currentStationIndex]?.station;
   const next = stops[snap.nextStationIndex]?.station;
   const phase = snap.arrival;
+  // In Walk mode the objective sits where these cards usually do: they move down a row.
+  const cardTop = walking ? "top-[128px] md:top-[180px] lg:top-[140px]" : "top-[86px] md:top-[128px] lg:top-[88px]";
+  const dwellTop = walking ? "top-[128px] md:top-[180px] lg:top-[140px]" : "top-[86px] md:top-[96px] lg:top-[88px]";
 
   // Before the first departure: show the origin and how to begin.
   if (snap.state === "idle" && !snap.finished && snap.elapsed === 0) {
+    if (walking) return null;
     return (
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6">
         <StationName name={engine.journey.from.name} nameTa={engine.journey.from.nameTa} />
@@ -75,7 +82,7 @@ export function ArrivalOverlay({
     );
   }
 
-  if (snap.finished && summaryShown) return null;
+  if (snap.finished && (summaryShown || walking)) return null;
 
   if (snap.finished && current) {
     const reverse = `/simulator?from=${engine.journey.to.id}&to=${engine.journey.from.id}`;
@@ -105,7 +112,7 @@ export function ArrivalOverlay({
       {phase === "approaching" && next && (
         <div
           key={`next-${next.id}`}
-          className="hud-panel pointer-events-none absolute left-1/2 top-[86px] z-10 flex min-w-[300px] max-w-[calc(100%-32px)] -translate-x-1/2 items-end justify-between gap-6 rounded-[14px] px-6 py-5 animate-rise-in md:top-[128px] lg:top-[88px]"
+          className={`hud-panel pointer-events-none absolute left-1/2 z-10 flex min-w-[300px] max-w-[calc(100%-32px)] -translate-x-1/2 items-end justify-between gap-6 rounded-[14px] px-6 py-5 animate-rise-in ${cardTop}`}
         >
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="text-[11px] tracking-[0.16em] text-muted">NEXT STATION</span>
@@ -126,7 +133,7 @@ export function ArrivalOverlay({
       {(phase === "doors-open" || phase === "doors-closing") && current && (
         <div
           key={`dwell-${current.id}`}
-          className="pointer-events-none absolute left-1/2 top-[86px] z-10 flex -translate-x-1/2 flex-col items-center gap-3 animate-fade-in md:top-[96px] lg:top-[88px]"
+          className={`pointer-events-none absolute left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3 animate-fade-in ${dwellTop}`}
         >
           <div className="hud-panel flex items-center gap-3 rounded-[12px] px-5 py-3">
             <span aria-hidden="true" className="h-3 w-1 rounded-full bg-route" />

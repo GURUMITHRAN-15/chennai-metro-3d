@@ -15,6 +15,7 @@ import { clamp, easeInOutCubic } from "../utils/interpolation.ts";
 import { freeCameraInput } from "./freeCamera.ts";
 import { roofHeightNear } from "./world/heightField.ts";
 import { dragLook, passengerLook, settleLook, zoomLook, type PassengerSpot } from "./passengerLook.ts";
+import { walkView } from "./walkState.ts";
 import { useViewStore, type CameraMode } from "../simulation/store.ts";
 import type { ArrivalPhase } from "../simulation/types.ts";
 
@@ -39,6 +40,7 @@ const MODE_LENS: Record<CameraMode, { fov: number; near: number; far: number }> 
   passenger: { fov: 68, near: 0.05, far: 7000 },
   map: { fov: 40, near: 40, far: 90000 },
   free: { fov: 48, near: 0.3, far: 30000 },
+  walk: { fov: 70, near: 0.1, far: 7000 },
 };
 
 /**
@@ -485,6 +487,15 @@ export function CameraRig({ reducedMotion, cameraShake, getArrival, hero = false
       }
       desiredFov = passengerLook.fov;
       lookFrom(tmp.pos, tmp.look);
+    } else if (mode === "walk" && walkView.ready) {
+      // The walk controller (WalkMode.tsx) owns the passenger; the camera is their eyes.
+      tmp.pos.set(walkView.x, walkView.y, walkView.z);
+      tmp.look.set(walkView.x + walkView.dx * 6, walkView.y + walkView.dy * 6, walkView.z + walkView.dz * 6);
+      lookFrom(tmp.pos, tmp.look);
+    } else if (mode === "walk") {
+      // Not placed yet (first frame): hold the current view.
+      tmp.pos.copy(camera.position);
+      tmp.quat.copy(camera.quaternion);
     } else if (mode === "map") {
       const b = route.bounds;
       const cx = (b.minX + b.maxX) / 2;

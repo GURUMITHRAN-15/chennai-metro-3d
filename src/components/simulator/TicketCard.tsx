@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { SimulationEngine } from "../../simulation/SimulationEngine";
 import type { SimulationState } from "../../simulation/types";
 import { discountedFare, fareForJourney } from "../../simulation/fares";
-import { getAudioContext } from "../../utils/audio";
+import { gateBeep } from "../../utils/audio";
 import { hashString, mulberry32 } from "../../utils/random";
 import { Close } from "../ui/Icons";
 
@@ -12,39 +12,12 @@ import { Close } from "../ui/Icons";
 const SHOW_MS = 3500;
 const QR_CELLS = 21;
 
-/** Two-tone ticket-gate beep. Silent when audio is unavailable or still locked. */
-function gateBeep() {
-  const ctx = getAudioContext();
-  if (!ctx) return;
-  try {
-    const t0 = ctx.currentTime + 0.02;
-    [
-      [1180, 0],
-      [1580, 0.13],
-    ].forEach(([freq, at]) => {
-      const osc = ctx.createOscillator();
-      const g = ctx.createGain();
-      osc.type = "square";
-      osc.frequency.value = freq;
-      g.gain.setValueAtTime(0, t0 + at);
-      g.gain.linearRampToValueAtTime(0.07, t0 + at + 0.01);
-      g.gain.setValueAtTime(0.07, t0 + at + 0.09);
-      g.gain.linearRampToValueAtTime(0, t0 + at + 0.11);
-      osc.connect(g).connect(ctx.destination);
-      osc.start(t0 + at);
-      osc.stop(t0 + at + 0.14);
-    });
-  } catch {
-    // A beep is a nice-to-have.
-  }
-}
-
 /**
  * QR-code-like pattern: finder squares in three corners and a deterministic
  * pseudo-random module grid from the journey and date. Decorative only — not
  * a scannable code.
  */
-function TicketQr({ seed }: { seed: string }) {
+export function TicketQr({ seed }: { seed: string }) {
   const cells = useMemo(() => {
     const rng = mulberry32(hashString(seed));
     const out: [number, number][] = [];
@@ -76,7 +49,16 @@ function TicketQr({ seed }: { seed: string }) {
  * seconds when the ride starts, with the fare from CMRL's distance bands and
  * a ticket-gate beep. Tap or Escape dismisses it early.
  */
-export function TicketCard({ engine, snap }: { engine: SimulationEngine; snap: SimulationState }) {
+export function TicketCard({
+  engine,
+  snap,
+  quiet = false,
+}: {
+  engine: SimulationEngine;
+  snap: SimulationState;
+  /** Walk mode: the passenger buys and scans a ticket themselves, so the card stays away. */
+  quiet?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const shownFor = useRef<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -92,10 +74,10 @@ export function TicketCard({ engine, snap }: { engine: SimulationEngine; snap: S
     if (!started || shownFor.current === engine.journey.id) return;
     shownFor.current = engine.journey.id;
     setOpen(true);
-    gateBeep();
+    if (!quiet) gateBeep();
     const t = window.setTimeout(() => setOpen(false), SHOW_MS);
     return () => window.clearTimeout(t);
-  }, [started, engine.journey.id]);
+  }, [started, engine.journey.id, quiet]);
 
   useEffect(() => {
     if (!open) return;
@@ -106,7 +88,7 @@ export function TicketCard({ engine, snap }: { engine: SimulationEngine; snap: S
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!open) return null;
+  if (!open || quiet) return null;
   return (
     <div
       role="dialog"

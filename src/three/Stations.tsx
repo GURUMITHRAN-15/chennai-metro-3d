@@ -30,6 +30,7 @@ import { crowdFactor } from "../simulation/crowd.ts";
 import { useViewStore } from "../simulation/store.ts";
 import { useHour } from "./CabinPeople.tsx";
 import { createHumanMaterial, crowdMesh, CROWD_VARIANTS, pickColours, type CrowdMember } from "./humanModel.ts";
+import { platformCrowd } from "./walkState.ts";
 
 export interface StationSignalState {
   /** Station id where our train currently holds a red signal, if any. */
@@ -315,11 +316,14 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
     const base = quality === "low" ? 0 : quality === "medium" ? 7 : 12;
     const peopleCount = base ? Math.max(1, Math.round(base * 2 * crowdLevel)) : 0;
     let people: Group | null = null;
+    platformCrowd.clear();
     if (peopleCount && served.length) {
       // Real-proportioned figures in a few outfits and poses, one instanced mesh per variant.
       const groups: CrowdMember[][] = CROWD_VARIANTS.map(() => []);
       for (const st of served) {
         const heading = alignment.heading(st.distance);
+        const standing: { x: number; z: number }[] = [];
+        platformCrowd.set(st.id, standing);
         for (const s of [-1, 1]) {
           for (let k = 0; k < peopleCount; k++) {
             // Leave the platform ends clear: the cinematic camera stands there.
@@ -332,6 +336,7 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
             const matrix = new Matrix4();
             composeMatrix(matrix, p.x, yAt(st), p.z, yaw, h, h, h);
             groups[v].push({ matrix, colours: pickColours(CROWD_VARIANTS[v].outfit, rng) });
+            standing.push({ x: p.x, z: p.z });
           }
         }
       }

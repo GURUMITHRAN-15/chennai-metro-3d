@@ -13,6 +13,7 @@ import { FreeCameraPad } from "./FreeCameraPad";
 import { PassengerPad } from "./PassengerPad";
 import { TicketCard } from "./TicketCard";
 import { JourneySummary } from "./JourneySummary";
+import { WalkHud } from "./WalkHud";
 import { LoadingScreen, type LoadProgress } from "./LoadingScreen";
 import { MobileMenu, MobileSheet } from "./MobileSheet";
 import { FallbackView } from "./FallbackView";
@@ -55,7 +56,7 @@ function DataError({ message }: { message: string }) {
   );
 }
 
-export default function SimulatorApp({ routeId, from, to }: { routeId?: string; from: string; to: string }) {
+export default function SimulatorApp({ routeId, from, to, walk = false }: { routeId?: string; from: string; to: string; /** Open in Walk mode (?walk=1). */ walk?: boolean }) {
   const built = useMemo(() => {
     try {
       return { engine: new SimulationEngine(getRouteModel(routeId), from, to), error: null };
@@ -65,10 +66,10 @@ export default function SimulatorApp({ routeId, from, to }: { routeId?: string; 
   }, [routeId, from, to]);
 
   if (!built.engine) return <DataError message={built.error ?? ""} />;
-  return <Simulator engine={built.engine} />;
+  return <Simulator engine={built.engine} walk={walk} />;
 }
 
-function Simulator({ engine }: { engine: SimulationEngine }) {
+function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }) {
   const webgl = useWebGL();
   const [sceneFailed, setSceneFailed] = useState(false);
   const [failReason, setFailReason] = useState<"failed" | "context-lost" | "chose-2d">("failed");
@@ -79,6 +80,13 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
   const sidebarOpen = useViewStore((s) => s.sidebarOpen);
   const setSidebarOpen = useViewStore((s) => s.setSidebarOpen);
   const autoplayed = useRef(false);
+  const setCameraMode = useViewStore((s) => s.setCameraMode);
+  const walkCamera = useViewStore((s) => s.cameraMode === "walk");
+
+  // A link that asks for Walk mode opens in it.
+  useEffect(() => {
+    if (walk) setCameraMode("walk");
+  }, [walk, setCameraMode]);
 
   useEngineLoop(engine);
   const snap = useSimulation(engine);
@@ -90,6 +98,8 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
   // Air-conditioning hum and door chimes, in the Passenger camera only.
   useCabinSounds(engine, { enabled: use3d && settings.trainSound, volume: settings.trainVolume });
   const loaded = webgl === "checking" ? false : use3d ? progress.render >= 1 : true;
+  // On foot the passenger starts the journey by boarding, buys their own ticket and ends it on the street.
+  const walking = use3d && walkCamera;
 
   // Watchdog: if the 3D scene hasn't finished after a while, offer the 2D map
   // rather than leaving the rider on a loading screen with no way forward.
@@ -114,13 +124,17 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
     if (!loaded || autoplayed.current || settings.reducedMotion) return;
     autoplayed.current = true;
     const t = window.setTimeout(() => {
-      if (!engine.started) engine.play();
+      if (!engine.started && useViewStore.getState().cameraMode !== "walk") engine.play();
     }, 2600);
     return () => window.clearTimeout(t);
   }, [loaded, engine, settings.reducedMotion]);
 
   const shortcuts = useMemo(() => {
     const view = useViewStore.getState;
+    // Walk mode moves with W A S D and the arrow keys, so those shortcuts stand down there.
+    const unlessWalking = (fn: () => void) => () => {
+      if (view().cameraMode !== "walk") fn();
+    };
     const map: Record<string, () => void> = {
       Space: () => engine.toggle(),
       k: () => engine.toggle(),
@@ -132,14 +146,14 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
         const i = SPEED_OPTIONS.indexOf(engine.clock.speed as (typeof SPEED_OPTIONS)[number]);
         engine.setSpeed(SPEED_OPTIONS[Math.min(SPEED_OPTIONS.length - 1, i + 1)]);
       },
-      ArrowLeft: () => engine.seek(engine.clock.time - 10),
-      ArrowRight: () => engine.seek(engine.clock.time + 10),
+      ArrowLeft: unlessWalking(() => engine.seek(engine.clock.time - 10)),
+      ArrowRight: unlessWalking(() => engine.seek(engine.clock.time + 10)),
       n: () => view().toggleTimeOfDay(),
-      w: () => {
+      w: unlessWalking(() => {
         const cur = WEATHER_CYCLE.indexOf(view().weather);
         view().setWeather(WEATHER_CYCLE[(cur + 1) % WEATHER_CYCLE.length]);
-      },
-      s: () => view().setSidebarOpen(!view().sidebarOpen),
+      }),
+      s: unlessWalking(() => view().setSidebarOpen(!view().sidebarOpen)),
       f: () => {
         if (document.fullscreenElement) void document.exitFullscreen();
         else void document.documentElement.requestFullscreen?.().catch(() => undefined);
@@ -206,9 +220,10 @@ function Simulator({ engine }: { engine: SimulationEngine }) {
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         corridor={engine.route.route.name}
       />
-      <ArrivalOverlay engine={engine} snap={snap} autoplayBlocked={settings.reducedMotion} summaryShown />
-      <TicketCard engine={engine} snap={snap} />
-      <JourneySummary engine={engine} snap={snap} />
+      <ArrivalOverlay engine={engine} snap={snap} autoplayBlocked={settings.reducedMotion} summaryShown walking={walking} />
+      <TicketCard engine={engine} snap={snap} quiet={walking} />
+      {!walking && <JourneySummary engine={engine} snap={snap} />}
+      {use3d && loaded && <WalkHud engine={engine} snap={snap} />}
       <ArrivalAnnouncer engine={engine} snap={snap} />
       {use3d && loaded && <FreeCameraPad />}
       {use3d && loaded && <PassengerPad />}

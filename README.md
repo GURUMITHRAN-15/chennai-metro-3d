@@ -6,7 +6,9 @@
 
 ▶ [Full screen recording (1 min, MP4)](docs/media/showcase.mp4) · **Live:** https://madesh-ops.github.io/chennai-metro-3d/
 
-Pick a line and any two stations, then watch a three-car train depart, accelerate, cruise, brake into each platform, open its doors and carry on. Watch from five cameras, by day or night, in sun or rain.
+Pick a line and any two stations, then watch a three-car train depart, accelerate, cruise, brake into each platform, open its doors and carry on. Watch from five cameras, by day or night, in sun or rain. Or make the journey yourself, on foot: buy a ticket, go through the gates, ride the escalator up and step aboard ([Walk mode](#walk-mode)).
+
+[![Walk mode: from the street to the ticket counter, through the gate, up the escalator, onto the train, and out again at the other end](docs/media/walk-mode.gif)](docs/media/walk-mode.mp4)
 
 - **Real track, real city.** Every line runs on its real path from OpenStreetMap: up on viaducts, down ramps into tunnels and underground stations, past the real streets, buildings, flyovers, lakes and parks around it.
 - **Six routes on five lines:**
@@ -30,7 +32,7 @@ Other scripts:
 | --- | --- |
 | `npm run build && npm start` | Production build and server |
 | `npm run build:pages` / `npm run preview:pages` | Static export for GitHub Pages (served under `/chennai-metro-3d/`) and a local preview of it. Pushing to `main` deploys automatically via `.github/workflows/pages.yml` |
-| `npm test` | Tests: route model and stop accuracy, the OSM network and world tiles, flyovers, station halls, landmarks, route summaries (Node test runner) |
+| `npm test` | Tests: route model and stop accuracy, the OSM network and world tiles, flyovers, station halls, landmarks, route summaries, walking (collision, the trip, the station floor plan) (Node test runner) |
 | `npm run lint` / `npm run typecheck` | ESLint (Next.js core-web-vitals + TypeScript) / `tsc --noEmit` |
 | `npm run osm:fetch`, `npm run osm:bake`, `npm run osm:tiles` | Rebuild the map data from OpenStreetMap (see [Licences](#licences)) |
 
@@ -58,7 +60,7 @@ If loading takes longer than 12 seconds, the page says so, explains the likely c
 | --- | --- |
 | `/` | Landing page with a live 3D dusk scene, every route, and a map of the whole network |
 | `/routes?route=…` | Journey planner: line picker, From/To selects, a clickable route map, distance and simulated journey time |
-| `/simulator?route=…&from=…&to=…` | The 3D simulator (no `route`: Poonamallee Bypass → Vadapalani) |
+| `/simulator?route=…&from=…&to=…` | The 3D simulator (no `route`: Poonamallee Bypass → Vadapalani). Add `&walk=1` to open it on foot, in Walk mode |
 | `/explore` | Network map and every route: status, fares, interchanges, speed limits, the Arcot Road double-decker, trains |
 | `/stations`, `/stations/[id]` | Every station on every line in English and Tamil, with interchanges, ride links, position, sources and context |
 | `/about` | What is verified, reported, assumed or approximated, plus sources and licences |
@@ -70,6 +72,7 @@ If loading takes longer than 12 seconds, the page says so, explains the likely c
   - **Driver** and **Passenger** (inside the car, with seats, poles and windows).
   - **Map:** every line from above.
   - **Free:** drag to rotate, right-drag or Shift-drag to pan, scroll or pinch to zoom, or use the on-screen pad (pan, zoom, rotate, tilt, recentre, follow train).
+  - **Walk:** first person, on foot (see [Walk mode](#walk-mode)).
   - Switching between cameras glides rather than snaps.
 - **Above and below ground:**
   - **Underground:** cut-and-cover tunnels and underground stations with platform screen doors. Station halls follow the real, sometimes curved, track.
@@ -93,8 +96,27 @@ If loading takes longer than 12 seconds, the page says so, explains the likely c
   - Play/pause, 0.5×/1×/2×/4× and a scrubbable timeline.
   - Day/night, and clear, cloudy or rain.
   - Settings: graphics quality, reduced motion, audio, shadows, traffic and camera shake.
-  - **Keyboard:** Space (play/pause), 1–5 (cameras), `[` `]` (speed), ← → (skip 10 s), N (night), W (weather), S (route panel), F (fullscreen), `,` (settings), `?` (all shortcuts).
+  - **Keyboard:** Space (play/pause), 1–6 (cameras), `[` `]` (speed), ← → (skip 10 s), N (night), W (weather), S (route panel), F (fullscreen), `,` (settings), `?` (all shortcuts).
 - **Resilience:** without WebGL, or if the scene crashes, the same journey continues on a live 2D route map. Force this with `?webgl=0`.
+
+### Walk mode
+
+Press **6** in the simulator (or open a journey with `&walk=1`, or choose "Walk it as a passenger" in the planner) to travel as a passenger, in first person:
+
+1. Start on the footpath outside the origin station and climb the stairs to the concourse.
+2. Buy a single-journey ticket at the counter (the fare is the CMRL distance-band fare for your journey).
+3. Scan it at an entry gate; the flaps open for you.
+4. Ride the escalator up to your platform.
+5. Step aboard through an open door. The train waits for you, then closes its doors and leaves.
+6. Ride. Walk up and down the car, look out of the windows, speed time up with `]`.
+7. Get off at your destination, take the escalator down and scan out at an exit gate.
+8. Drop the used ticket in the box, and take the stairs down to the street.
+
+- **Controls:** W A S D or the arrow keys to walk, Shift to run, the mouse to look (click the view to capture it, Esc to free it), E to use what is in front of you. On a touch screen: a thumb stick, drag to look, and a button for each action.
+- **Finding your way:** a line at the top says what to do next and how far it is, and a yellow marker stands at the spot. Signs are in English and Tamil.
+- **Solid world:** walls, railings, gate cabinets, the ticket office and the people on the platform all stand in your way; a gate stays shut without a ticket.
+- **Joining late:** switch to Walk mode after the train has left and you are on board, ticket in hand. The W, S and arrow-key shortcuts stand down while you walk.
+- **Where it works:** every elevated station (including the double-decker ones) can be walked through. Underground stations do not have a modelled concourse yet: a trip that starts at one begins on board, and a trip that ends at one ends on board.
 
 ## Architecture
 
@@ -103,7 +125,8 @@ src/
   app/           Next.js App Router pages
   components/    DOM UI: navigation, line picker, route + network maps, simulator HUD, station pages
   three/         React Three Fiber scene: Train, Track (viaducts, tunnels, portals), Stations (elevated
-                 and underground), Footbridges, Landmarks, Traffic, Lighting, Weather, Cameras, MapOverlay
+                 and underground), Footbridges, Landmarks, Traffic, Lighting, Weather, Cameras, MapOverlay,
+                 WalkMode (the passenger on foot; walkPlan is the station floor plan it shares with the models)
     world/       Streamed OpenStreetMap city: tile format, keep-out zones, tile worker, geometry
                  (buildings, roads, flyovers, water, parks, trees)
   simulation/    Framework-agnostic engine (no React):
@@ -112,6 +135,8 @@ src/
                    Journey          any two stations, either direction
                    TrainController  jerk-limited motion profile, precomputed trajectory
                    SimulationEngine owns clock + trajectory; single source of truth
+                   walkSpace        floors, ramps, furniture and gates the passenger on foot moves through
+                   PassengerTrip    the passenger's own journey: ticket → gate → train → gate → street
   data/          network.json (OSM track and stations), stations, routes, tracks, landmarks
   lib/           Serializable route and network summaries for pages that don't need three.js
 scripts/osm/     Fetch and bake OpenStreetMap: network (bake-network), city tiles (bake-tiles)
@@ -131,6 +156,10 @@ Key decisions:
   - Only buildings near the train draw into the shadow map, and the scene renders nothing until its shaders are compiled.
 - **Flyovers are worked out from the map.** A bridge that crosses a road gets a deck at 7.5 m. Its approach ramps follow the road that carries straight on (slip roads stay slip roads), and interchange loops descend along their own length. Barriers are left out wherever two decks merge.
 - **One source of truth, no per-frame React renders.** The 3D scene reads `engine.sample` inside `useFrame`, and the DOM HUD subscribes to snapshots throttled to 10 Hz.
+- **Walking needs no physics engine.**
+  - A station's inside is one floor plan (`three/walkPlan.ts`): the same numbers build the model and the walkable pads, so what you see is what you can stand on.
+  - The passenger is a point with a radius that slides along walls; stairs and escalators are ramps, gates are barriers that open. The tests flood-fill the plan to prove the platform can be reached only through an entry gate, and the street only through an exit gate.
+  - The passenger is always in one frame: a station, or a train car. Stepping through an open door hands them from one to the other, which is why they ride along with the train without any extra work.
 - **Light pages stay light.** `/routes`, `/stations` and `/explore` get JSON summaries from the server and never download three.js.
 
 ### Performance
@@ -163,6 +192,9 @@ Track and stations from OpenStreetMap (snapshot 5 Oct 2026). Line 4 facts verifi
 | Landmarks: Vadapalani Murugan and Sri Varadaraja Perumal temples, Porur Lake | Verified coordinates (Wikipedia); models stylised (the lake's real outline is from OSM) |
 | Nexus Vijaya Mall, Kamala Cinemas, Chandra Metro Mall, bus stands, Government Hospital Poonamallee | Approximate: traced from satellite views and photos supplied by the project owner, or from a street address. Each stands at one fixed spot, the same on every line |
 | Crowds, in-car displays, film posters, hoardings, shop names | Illustrative / invented (real chains and brands excluded) |
+| Station interiors in Walk mode: concourse, ticket office, fare gates, escalators, street stairs, wayfinding signs | Generic: one floor plan for every elevated station, not a survey of any real one. Sign wording is ordinary English and Tamil, not CMRL's own |
+| Ticket in Walk mode: a single-journey paper QR ticket bought at the counter at the full fare | Reported: CMRL sells single-journey paper QR tickets at counters, and the 20% discount does not apply to them (DT Next, 1 Sep 2026). Scanning at the gates is modelled simply (press E) |
+| Used-ticket box past the exit gates | Illustrative (not a documented CMRL fitting) |
 | Train look, interior, facades, traffic | Stylised after photos of CMRL trains / procedural (traffic runs on the road under the viaduct) |
 
 To correct anything, edit the JSON. Components read the route model, never hard-coded values, and `validateBundle()` reports problems in plain language.

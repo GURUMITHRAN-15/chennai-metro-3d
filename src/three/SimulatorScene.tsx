@@ -23,6 +23,7 @@ import { Traffic } from "./Traffic.tsx";
 import { TrafficAudio } from "./TrafficAudio.tsx";
 import { Rain } from "./Weather.tsx";
 import { CameraRig } from "./Cameras.tsx";
+import { WalkMode } from "./WalkMode.tsx";
 import { MapOverlay } from "./MapOverlay.tsx";
 import type { SimulationEngine } from "../simulation/SimulationEngine.ts";
 import { arrivalPhase } from "../simulation/StationController.ts";
@@ -233,6 +234,7 @@ export default function SimulatorScene({ engine, onProgress, onContextLost }: Si
         <CabinDisplays engine={engine} />
         <Rain count={RAIN_DROPS[settings.quality]} enabled={settings.weatherEffects} />
         <MapOverlay highlightIds={[engine.journey.from.id, engine.journey.to.id]} />
+        <WalkMode engine={engine} reducedMotion={settings.reducedMotion} />
         <CameraRig reducedMotion={settings.reducedMotion} cameraShake={settings.cameraShake} getArrival={getArrival} />
         <DevProbe />
         <RenderGate open={renderOpen} />
