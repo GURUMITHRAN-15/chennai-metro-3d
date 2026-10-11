@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
-import { ButtonLink } from "../ui/Button";
 import { ArrowRight } from "../ui/Icons";
 import { SiteHeader } from "../navigation/SiteHeader";
 import { useWebGL } from "../../hooks/useWebGL";
@@ -11,14 +11,13 @@ import { SceneErrorBoundary } from "../simulator/SceneErrorBoundary";
 
 const HeroScene = dynamic(() => import("../../three/HeroScene"), { ssr: false });
 
-export interface HeroFacts {
-  lines: { name: string; colour: string }[];
-  lengthKm: number;
+export interface HeroProps {
   stations: number;
-  openLines: number;
+  /** The journey the main button starts. */
+  ride: { href: string; label: string };
 }
 
-export function Hero({ facts }: { facts: HeroFacts }) {
+export function Hero({ stations, ride }: HeroProps) {
   const webgl = useWebGL();
   const reduced = usePrefersReducedMotion();
   const [sceneReady, setSceneReady] = useState(false);
@@ -41,70 +40,55 @@ export function Hero({ facts }: { facts: HeroFacts }) {
           </SceneErrorBoundary>
         </div>
       )}
-      {/* Legibility scrims */}
+      {/* Just enough shade for the words: from the lower left, where they sit, and under the header. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-0"
-        style={{ background: "linear-gradient(90deg, rgba(7,11,18,0.86) 0%, rgba(7,11,18,0.5) 38%, rgba(7,11,18,0) 66%)" }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 h-36"
-        style={{ background: "linear-gradient(180deg, rgba(7,11,18,0.7), rgba(7,11,18,0))" }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-40"
-        style={{ background: "linear-gradient(0deg, rgba(7,11,18,0.75), rgba(7,11,18,0))" }}
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(90% 70% at 0% 100%, rgba(7,11,18,0.88) 0%, rgba(7,11,18,0.55) 45%, rgba(7,11,18,0) 75%), linear-gradient(180deg, rgba(7,11,18,0.6) 0%, rgba(7,11,18,0) 18%)",
+        }}
       />
 
       <SiteHeader overlay />
 
-      <div id="main" className="absolute inset-x-4 bottom-[120px] flex max-w-[560px] flex-col gap-6 sm:inset-x-8 lg:left-12 lg:bottom-[132px]">
-        <div className="flex items-center gap-2.5 font-mono text-[12px] tracking-[0.08em] text-muted animate-fade-in">
-          <span className="flex gap-1" aria-hidden="true">
-            {facts.lines.map((l) => (
-              <span key={l.name} className="h-1 w-[14px] rounded-sm" style={{ background: l.colour }} />
-            ))}
-          </span>
-          <span>{facts.lines.length} LINES · REAL TRACK, REAL CITY</span>
-        </div>
-        <div className="flex flex-col gap-3.5 animate-rise-in">
-          <p className="text-[13px] font-semibold tracking-[0.16em] text-muted">CHENNAI METRO 3D</p>
-          <h1 id="hero-title" className="text-[44px] font-semibold leading-[1.02] tracking-[-0.025em] sm:text-[60px]">
-            Explore the journey.
+      <div id="main" className="absolute inset-x-5 bottom-14 flex max-w-[640px] flex-col gap-7 sm:inset-x-8 sm:bottom-16 lg:left-12 lg:bottom-20">
+        <div className="flex flex-col gap-5 animate-rise-in">
+          <h1 id="hero-title" className="text-[clamp(2.75rem,7vw,5.25rem)] font-semibold leading-[0.98] tracking-[-0.035em]">
+            Ride the
+            <br />
+            Chennai Metro.
           </h1>
-          <p className="max-w-[420px] text-[17px] leading-relaxed text-[#aeb8c5] sm:text-[18px]">
-            Ride the Blue, Green, Purple, Yellow and Red lines in real-time 3D, on the real track through the real streets of Chennai.
+          <p className="max-w-[30rem] text-[17px] leading-[1.5] text-[#c3cbd6] sm:text-[19px]">
+            All five lines on their real track: over the viaducts, through the tunnels and into {stations} stations. Drawn live, in your
+            browser.
           </p>
         </div>
-        <div className="flex flex-wrap gap-3 animate-rise-in [animation-delay:120ms]">
-          <ButtonLink href="/routes" size="lg">
-            Start a Journey <ArrowRight size={18} />
-          </ButtonLink>
-          <ButtonLink href="/explore" size="lg" variant="secondary">
-            Explore Routes
-          </ButtonLink>
+        <div className="flex flex-wrap items-center gap-x-7 gap-y-4 animate-rise-in [animation-delay:90ms]">
+          <Link
+            href={ride.href}
+            className="inline-flex h-12 items-center gap-2 rounded-full bg-ink px-6 text-[16px] font-semibold text-bg transition-[transform,background-color] duration-100 ease-out hover:bg-white active:scale-[0.97]"
+          >
+            {ride.label}
+            <ArrowRight size={17} />
+          </Link>
+          <Link href="/routes" className="group inline-flex items-center gap-1.5 text-[16px] font-medium text-ink/85 transition-colors hover:text-ink">
+            Plan a journey
+            <ArrowRight size={16} className="transition-transform duration-150 group-hover:translate-x-0.5" />
+          </Link>
         </div>
       </div>
 
-      <div className="absolute inset-x-4 bottom-8 flex flex-wrap items-end justify-between gap-4 font-mono text-[12px] text-muted sm:inset-x-8 lg:inset-x-12">
-        <dl className="flex flex-wrap gap-x-7 gap-y-1">
-          <div className="flex gap-1.5">
-            <dt className="sr-only">Length</dt>
-            <dd><span className="text-ink">{facts.lengthKm.toFixed(0)}</span> km of line</dd>
-          </div>
-          <div className="flex gap-1.5">
-            <dt className="sr-only">Stations</dt>
-            <dd><span className="text-ink">{facts.stations}</span> stations</dd>
-          </div>
-          <div className="flex gap-1.5">
-            <dt className="sr-only">Status</dt>
-            <dd><span className="text-ink">{facts.openLines}</span> running or opening · {facts.lines.length - facts.openLines} under construction</dd>
-          </div>
-        </dl>
-        <span className="hidden sm:inline">{webgl === "unsupported" ? "3D preview unavailable on this device" : "Real-time 3D · city from OpenStreetMap"}</span>
-      </div>
+      <p className="absolute bottom-5 right-5 hidden items-center gap-2 text-[12px] text-white/55 sm:right-8 sm:flex lg:right-12">
+        {webgl === "unsupported" ? (
+          "3D preview unavailable on this device"
+        ) : (
+          <>
+            <span className="h-1.5 w-1.5 rounded-full bg-[#f2b705]" aria-hidden="true" />
+            Live: Line 4, Thelliyaragaram to Porur
+          </>
+        )}
+      </p>
     </section>
   );
 }

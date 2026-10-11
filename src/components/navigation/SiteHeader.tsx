@@ -47,9 +47,9 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
         <div className="flex items-center gap-2">
           <Link
             href="/simulator"
-            className="hidden h-10 items-center gap-2 rounded-lg bg-accent px-4 text-sm font-semibold text-white transition-colors hover:bg-[#2b85ff] sm:inline-flex"
+            className="hidden h-9 items-center gap-1.5 rounded-full bg-ink px-4 text-sm font-semibold text-bg transition-[transform,background-color] duration-100 ease-out hover:bg-white active:scale-[0.97] sm:inline-flex"
           >
-            Start Simulation <ArrowRight size={16} />
+            Ride <ArrowRight size={15} />
           </Link>
           <button
             type="button"
@@ -70,8 +70,8 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean }) {
               {n.label}
             </Link>
           ))}
-          <Link href="/simulator" className="mt-1 rounded-lg bg-accent px-4 py-3 text-[15px] font-semibold text-white">
-            Start Simulation
+          <Link href="/simulator" className="mt-1 rounded-lg bg-ink px-4 py-3 text-[15px] font-semibold text-bg">
+            Ride
           </Link>
         </nav>
       )}
