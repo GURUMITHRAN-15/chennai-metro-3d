@@ -21,7 +21,7 @@ export const SHORTCUT_HELP: { keys: string; action: string }[] = [
 export const WALK_SHORTCUT_HELP: { keys: string; action: string }[] = [
   { keys: "W A S D", action: "Walk (arrow keys work too)" },
   { keys: "Shift", action: "Run" },
-  { keys: "Mouse", action: "Look around: click the view to capture the mouse, Esc to free it" },
+  { keys: "Mouse", action: "Look around (click the view to capture the mouse, Esc frees it)" },
   { keys: "E", action: "Use: buy a ticket, scan it at a gate, drop it in the box" },
 ];
 

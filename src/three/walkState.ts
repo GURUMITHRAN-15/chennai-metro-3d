@@ -138,5 +138,39 @@ export const requestWalk = (r: WalkRequest) => {
 };
 export const takeWalkRequests = (): WalkRequest[] => requests.splice(0, requests.length);
 
+/**
+ * Mouse capture for looking around. WalkMode registers the canvas; anything
+ * handling a click (the view, Depart, the counter's buttons) may capture the
+ * mouse from inside that click, as browsers require.
+ */
+export const walkPointer = { el: null as HTMLElement | null };
+
+export function lockWalkPointer() {
+  const el = walkPointer.el;
+  if (!el || typeof document === "undefined" || document.pointerLockElement === el) return;
+  const request = (opts?: object) => (el.requestPointerLock as (o?: object) => Promise<void> | undefined)(opts);
+  try {
+    // Raw mouse input where the browser offers it; a plain capture otherwise.
+    const p = request({ unadjustedMovement: true });
+    p?.catch?.(() => {
+      try {
+        request()?.catch?.(() => undefined);
+      } catch {
+        // Refused (for a moment after Esc, in Chrome): the overlay offers it again.
+      }
+    });
+  } catch {
+    try {
+      request()?.catch?.(() => undefined);
+    } catch {
+      // Pointer lock is optional.
+    }
+  }
+}
+
+export function unlockWalkPointer() {
+  if (typeof document !== "undefined" && document.pointerLockElement) document.exitPointerLock();
+}
+
 /** On board in Walk mode (the cabin and train sounds follow the passenger there). */
 export const walkingAboard = () => hud.active && hud.aboard;

@@ -90,3 +90,15 @@ test("inside a car: the aisle and every doorway, but not the benches", () => {
   assert.ok(standAt(car, -2.85, -1.0, 1.13), "at a door");
   assert.equal(standAt(car, 0, -1.0, 1.13), null, "a bench");
 });
+
+test("ticket windows: stand at the counter, but not inside its shelf", () => {
+  const O = CONCOURSE.office;
+  for (const s of [-1, 1] as const) {
+    for (const c of stationPoints(plan, s).counters) {
+      assert.ok(standAt(space, c.x, c.z, c.y), `stand at the window at z ${c.z}`);
+      // Body radius clear of the shelf's front edge.
+      assert.ok(!standAt(space, O.x0 - O.shelf - 0.15, c.z, c.y), "the shelf is solid");
+      assert.ok(standAt(space, O.x0 - O.shelf - 0.35, c.z, c.y), "right up to the shelf");
+    }
+  }
+});

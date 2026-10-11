@@ -154,8 +154,13 @@ export function buildConcourse(plan: ConcoursePlan, lineColour: string): Concour
   ceil(o.x0, o.x1, -o.z0, o.z0);
   for (const s of [-1, 1]) ceil(o.x0, o.x1, s * o.z1, s * cw);
   // Ceiling light strips in rows clear of the openings.
+  // None inside the ticket office, which has its own lamp (two in one place flicker).
+  const inOffice = (x0: number, x1: number, z: number) => x1 > C.office.x0 && x0 < C.office.x1 && Math.abs(z) < C.office.halfZ;
   for (const z of [-14.6, -7.2, 0, 7.2, 14.6]) {
-    for (let x = -cl + 2; x < cl - 4; x += 6) glow.push(cbox(x, x + 3.6, H - 0.06, H - 0.045, z - 0.14, z + 0.14, COLOUR.lamp));
+    for (let x = -cl + 2; x < cl - 4; x += 6) {
+      if (inOffice(x, x + 3.6, z)) continue;
+      glow.push(cbox(x, x + 3.6, H - 0.06, H - 0.045, z - 0.14, z + 0.14, COLOUR.lamp));
+    }
   }
 
   // Ticket office: a room with two windows on its west face, a counter shelf and a clerk at each.
@@ -163,17 +168,19 @@ export function buildConcourse(plan: ConcoursePlan, lineColour: string): Concour
     const O = C.office;
     const sill = F + 1.05;
     const head = F + 2.25;
-    const half = 0.9;
+    const half = O.windowHalf;
     solid.push(cbox(O.x1 - 0.12, O.x1, F, H, -O.halfZ, O.halfZ, COLOUR.office));
     for (const s of [-1, 1]) solid.push(cbox(O.x0, O.x1, F, H, s * O.halfZ, s * (O.halfZ - 0.12), COLOUR.office));
-    solid.push(cbox(O.x0, O.x0 + 0.12, F, sill, -O.halfZ, O.halfZ, COLOUR.office));
+    // Stops under the counter shelf, so the shelf alone is at sill height.
+    solid.push(cbox(O.x0, O.x0 + 0.12, F, sill - 0.05, -O.halfZ, O.halfZ, COLOUR.office));
     solid.push(cbox(O.x0, O.x0 + 0.12, head, H, -O.halfZ, O.halfZ, COLOUR.office));
     const edges = [-O.halfZ, ...O.windows.flatMap((z) => [z - half, z + half]), O.halfZ];
-    for (let i = 0; i < edges.length; i += 2) solid.push(cbox(O.x0, O.x0 + 0.12, sill, head, edges[i], edges[i + 1], COLOUR.office));
-    solid.push(cbox(O.x0 + 0.12, O.x1 - 0.12, F, F + 0.012, -O.halfZ, O.halfZ, COLOUR.stone));
+    for (let i = 0; i < edges.length; i += 2) solid.push(cbox(O.x0, O.x0 + 0.12, sill - 0.05, head, edges[i], edges[i + 1], COLOUR.office));
+    // Just above the hall tiles, not level with them.
+    solid.push(cbox(O.x0 + 0.12, O.x1 - 0.12, F + 0.012, F + 0.02, -O.halfZ, O.halfZ, COLOUR.stone));
     for (const z of O.windows) {
       // Counter shelf through the window, glass above a pay slot, the sign over it.
-      solid.push(cbox(O.x0 - 0.32, O.x0 + 0.62, sill - 0.05, sill, z - half, z + half, COLOUR.stone));
+      solid.push(cbox(O.x0 - O.shelf, O.x0 + 0.62, sill - 0.05, sill, z - half, z + half, COLOUR.stone));
       solid.push(cbox(O.x0 + 0.1, O.x0 + 0.16, F, sill - 0.05, z - half, z + half, COLOUR.office));
       glass.push(pane(O.x0 + 0.05, O.x0 + 0.07, sill + 0.16, head, z - half, z + half));
       signs.push(signFace(SIGN.tickets, O.x0 - 0.012, head + 0.42, z, 2.2, 0.55, "-x"));

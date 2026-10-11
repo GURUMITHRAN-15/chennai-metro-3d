@@ -39,7 +39,7 @@ export const CONCOURSE = {
   /** Fare-gate lanes (centres across the hall) on the island's west (entry) and east (exit) faces. */
   gate: { lanes: [-2.25, -0.75, 0.75, 2.25], pitch: 1.5, cabinetWidth: 0.35, cabinetLength: 1.3, cabinetHeight: 1.0 },
   /** Ticket office in the west hall; its windows face west. */
-  office: { x0: -24.4, x1: -18.6, halfZ: 4.4, windows: [-2.2, 2.2] },
+  office: { x0: -24.4, x1: -18.6, halfZ: 4.4, windows: [-2.2, 2.2], windowHalf: 0.9, shelf: 0.32 },
   /** Used-ticket box in the east hall, just past the exit gates. */
   ticketBox: { x: 18.6, z: -5, half: 0.3, height: 1.1 },
   /** Escalator bank beside each platform: up nearer the track, down outside it. */
@@ -236,6 +236,10 @@ export function stationWalkSpace(plan: ConcoursePlan): WalkSpace {
 
   for (const [x, z] of C.bystanders) obstacles.push({ x0: x - 0.22, x1: x + 0.22, z0: z - 0.22, z1: z + 0.22, y0: F, y1: F + 1.7 });
   obstacles.push({ x0: C.office.x0, x1: C.office.x1, z0: -C.office.halfZ, z1: C.office.halfZ, y0: F, y1: plan.ceilY });
+  // The counter shelves stick out through the windows: keep the eye out of them.
+  for (const z of C.office.windows) {
+    obstacles.push({ x0: C.office.x0 - C.office.shelf, x1: C.office.x0, z0: z - C.office.windowHalf, z1: z + C.office.windowHalf, y0: F, y1: F + 1.05 });
+  }
   obstacles.push({ x0: C.ticketBox.x - C.ticketBox.half, x1: C.ticketBox.x + C.ticketBox.half, z0: C.ticketBox.z - C.ticketBox.half, z1: C.ticketBox.z + C.ticketBox.half, y0: F, y1: F + C.ticketBox.height });
 
   return { pads, obstacles, barriers };

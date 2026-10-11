@@ -6,7 +6,7 @@ import type { SimulationEngine } from "../../simulation/SimulationEngine";
 import type { SimulationState } from "../../simulation/types";
 import { fareForJourney } from "../../simulation/fares";
 import { useViewStore } from "../../simulation/store";
-import { getServerWalkHud, getWalkHud, requestWalk, setWalkHud, subscribeWalkHud, walkInput, type WalkHud as WalkHudState } from "../../three/walkState";
+import { getServerWalkHud, getWalkHud, lockWalkPointer, requestWalk, setWalkHud, subscribeWalkHud, unlockWalkPointer, walkInput, type WalkHud as WalkHudState } from "../../three/walkState";
 import { formatClock } from "../../utils/format";
 import { buttonClass } from "../ui/Button";
 import { Close, Restart } from "../ui/Icons";
@@ -29,8 +29,13 @@ function CounterDialog({ engine, fare }: { engine: SimulationEngine; fare: numbe
     pay.current?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
+        // A key can't capture the mouse: the "click to look around" panel offers it.
         e.preventDefault();
         setWalkHud({ counterOpen: false });
+      } else if (e.code === "KeyE" && !e.repeat) {
+        // E again pays, as E opened the counter.
+        e.preventDefault();
+        requestWalk("buy-ticket");
       }
     };
     window.addEventListener("keydown", onKey);
@@ -58,10 +63,21 @@ function CounterDialog({ engine, fare }: { engine: SimulationEngine; fare: numbe
         </dl>
         <p className="text-[12px] leading-snug text-muted">Counter tickets are sold at the full fare; the digital discount applies to mobile QR tickets and travel cards.</p>
         <div className="flex gap-3">
-          <button ref={pay} type="button" onClick={() => requestWalk("buy-ticket")} className={buttonClass("primary", "md")}>
+          <button ref={pay} type="button" onClick={() => {
+              requestWalk("buy-ticket");
+              // Back to looking around, in the same click.
+              lockWalkPointer();
+            }} className={buttonClass("primary", "md")}>
             Pay {fare !== null ? `₹${fare}` : ""}
           </button>
-          <button type="button" onClick={() => setWalkHud({ counterOpen: false })} className={buttonClass("ghost", "md")}>
+          <button
+            type="button"
+            onClick={() => {
+              setWalkHud({ counterOpen: false });
+              lockWalkPointer();
+            }}
+            className={buttonClass("ghost", "md")}
+          >
             Not now
           </button>
         </div>
@@ -204,6 +220,7 @@ function WalkStick() {
  */
 export function WalkHud({ engine, snap }: { engine: SimulationEngine; snap: SimulationState }) {
   const walking = useViewStore((s) => s.cameraMode === "walk");
+  const panelOpen = useViewStore((s) => s.settingsOpen || s.shortcutsOpen);
   const hud = useSyncExternalStore(subscribeWalkHud, getWalkHud, getServerWalkHud);
   const fare = useMemo(
     () => fareForJourney(engine.route.stations, engine.route.route.fares.bands?.slabs ?? [], engine.journey.from.id, engine.journey.to.id),
@@ -221,7 +238,7 @@ export function WalkHud({ engine, snap }: { engine: SimulationEngine; snap: Simu
   const done = hud.stage === "done";
   useEffect(() => {
     // Free the mouse so the summary's buttons can be clicked.
-    if (done && document.pointerLockElement) document.exitPointerLock();
+    if (done) unlockWalkPointer();
   }, [done]);
 
   if (!walking || !hud.active) return null;
@@ -267,22 +284,34 @@ export function WalkHud({ engine, snap }: { engine: SimulationEngine; snap: Simu
         </div>
       )}
 
-      {!hud.pointerLocked && !done && !hud.counterOpen && (
-        <p className="hud-panel pointer-events-none absolute bottom-[128px] left-5 z-10 hidden max-w-[300px] flex-wrap items-center gap-x-2 gap-y-1.5 rounded-[12px] px-3.5 py-2.5 text-[12px] text-muted pointer-fine:md:flex">
-          <span>Click the view to look around.</span>
-          <span className="inline-flex items-center gap-1">
-            <Key>W</Key>
-            <Key>A</Key>
-            <Key>S</Key>
-            <Key>D</Key> move
+      {!hud.pointerLocked && !done && !hud.counterOpen && !panelOpen && (
+        // Mouse devices: the view is "paused" until the mouse is captured again.
+        <button
+          type="button"
+          onClick={lockWalkPointer}
+          className="pointer-events-auto absolute inset-0 z-[15] hidden items-center justify-center bg-black/20 pointer-fine:flex"
+        >
+          <span className="hud-panel flex max-w-[340px] flex-col items-center gap-2.5 rounded-[16px] px-5 py-4 text-center text-[13px] text-muted">
+            <span className="text-[15px] font-semibold text-ink">Click to look around</span>
+            <span className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1.5">
+              <span className="inline-flex items-center gap-1">
+                <Key>W</Key>
+                <Key>A</Key>
+                <Key>S</Key>
+                <Key>D</Key> move
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Key>Shift</Key> run
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Key>E</Key> use
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Key>Esc</Key> frees the mouse
+              </span>
+            </span>
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Key>Shift</Key> run
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Key>E</Key> use
-          </span>
-        </p>
+        </button>
       )}
 
       {hud.hasTicket && !done && <TicketStub engine={engine} fare={fare} startedAboard={hud.startedAboard} />}

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { TopBar } from "./TopBar";
 import { RouteSidebar } from "./RouteSidebar";
 import { ControlBar } from "./ControlBar";
@@ -79,7 +79,6 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
   const settings = useViewStore((s) => s.settings);
   const sidebarOpen = useViewStore((s) => s.sidebarOpen);
   const setSidebarOpen = useViewStore((s) => s.setSidebarOpen);
-  const autoplayed = useRef(false);
   const setCameraMode = useViewStore((s) => s.setCameraMode);
   const walkCamera = useViewStore((s) => s.cameraMode === "walk");
 
@@ -117,17 +116,6 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
   const onProgress = useCallback((key: LoadKey, value: number) => {
     setProgress((p) => (p[key] === value ? p : { ...p, [key]: value }));
   }, []);
-
-  // Depart automatically once everything is ready — unless the rider asked
-  // for reduced motion, in which case nothing moves until they press play.
-  useEffect(() => {
-    if (!loaded || autoplayed.current || settings.reducedMotion) return;
-    autoplayed.current = true;
-    const t = window.setTimeout(() => {
-      if (!engine.started && useViewStore.getState().cameraMode !== "walk") engine.play();
-    }, 2600);
-    return () => window.clearTimeout(t);
-  }, [loaded, engine, settings.reducedMotion]);
 
   const shortcuts = useMemo(() => {
     const view = useViewStore.getState;
@@ -220,7 +208,7 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         corridor={engine.route.route.name}
       />
-      <ArrivalOverlay engine={engine} snap={snap} autoplayBlocked={settings.reducedMotion} summaryShown walking={walking} />
+      <ArrivalOverlay engine={engine} snap={snap} summaryShown walking={walking} />
       <TicketCard engine={engine} snap={snap} quiet={walking} />
       {!walking && <JourneySummary engine={engine} snap={snap} />}
       {use3d && loaded && <WalkHud engine={engine} snap={snap} />}

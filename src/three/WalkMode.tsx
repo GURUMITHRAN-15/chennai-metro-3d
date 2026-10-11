@@ -22,7 +22,7 @@ import { TRAIN } from "./layout.ts";
 import { buildConcourse, buildEscalatorSteps } from "./concourseModel.ts";
 import { ensureFontsLoaded, makeConcourseSignAtlas } from "./textures.ts";
 import { CONCOURSE, carWalkSpace, concoursePlan, gateId, planDims, stationPoints, stationWalkSpace, stationWalkable, type ConcoursePlan, type Side, type WalkPoint } from "./walkPlan.ts";
-import { getWalkHud, platformCrowd, releaseWalkInput, resetWalkHud, setWalkHud, showWalkNotice, takeWalkRequests, walkInput, walkView, type WalkHud } from "./walkState.ts";
+import { getWalkHud, lockWalkPointer, platformCrowd, releaseWalkInput, resetWalkHud, setWalkHud, showWalkNotice, subscribeWalkHud, takeWalkRequests, unlockWalkPointer, walkInput, walkPointer, walkView, type WalkHud } from "./walkState.ts";
 import { composeMatrix } from "../utils/geometry.ts";
 import { clamp, damp, dampAngle } from "../utils/interpolation.ts";
 import { gateBeep } from "../utils/audio.ts";
@@ -52,6 +52,8 @@ const RUN_SPEED = 5.2;
 /** Radians per pixel: mouse look while the pointer is captured, and drag look otherwise. */
 const LOOK_RATE = 0.0023;
 const MAX_PITCH = 1.35;
+/** Larger single mouse moves (pixels) while captured are glitches, not looks. */
+const MAX_LOOK_STEP = 250;
 /** A gate lane stays open this long after a scan, or until the passenger is through. */
 const GATE_OPEN_S = 9;
 const USE_RANGE = 1.4;
@@ -283,10 +285,18 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
       held.clear();
       apply();
     };
+    // A dialog takes the keyboard: let go of whatever was held so nobody walks off when it closes.
+    let dialog = false;
+    const offHud = subscribeWalkHud(() => {
+      const open = getWalkHud().counterOpen;
+      if (open && !dialog) clear();
+      dialog = open;
+    });
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
     window.addEventListener("blur", clear);
     return () => {
+      offHud();
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
       window.removeEventListener("blur", clear);
@@ -294,20 +304,39 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
     };
   }, [walking]);
 
-  // Looking: click captures the mouse (Esc releases it); without capture, and on touch, drag to look.
+  // The canvas is what the mouse locks to (Depart and the counter's buttons capture it too).
+  useEffect(() => {
+    walkPointer.el = gl.domElement;
+    return () => {
+      if (walkPointer.el === gl.domElement) walkPointer.el = null;
+    };
+  }, [gl]);
+
+  // Settings and the shortcuts list need the mouse.
+  const panelOpen = useViewStore((s) => s.settingsOpen || s.shortcutsOpen);
+  useEffect(() => {
+    if (walking && panelOpen) unlockWalkPointer();
+  }, [walking, panelOpen]);
+
+  // Looking: a click on the view captures the mouse (Esc frees it); on touch, drag to look.
   useEffect(() => {
     if (!walking) return;
     const el = gl.domElement;
-    const drags = new Map<number, { x: number; y: number; moved: number }>();
+    const drags = new Map<number, { x: number; y: number }>();
     const prevTouch = el.style.touchAction;
     el.style.touchAction = "none";
     const locked = () => document.pointerLockElement === el;
     const down = (e: PointerEvent) => {
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-      drags.set(e.pointerId, { x: e.clientX, y: e.clientY, moved: 0 });
+      if (e.pointerType === "mouse") {
+        if (e.button === 0 && !locked() && !getWalkHud().counterOpen) lockWalkPointer();
+        return;
+      }
+      drags.set(e.pointerId, { x: e.clientX, y: e.clientY });
     };
     const move = (e: PointerEvent) => {
       if (locked()) {
+        // Chrome sometimes reports one huge jump just after capture: ignore it.
+        if (Math.abs(e.movementX) > MAX_LOOK_STEP || Math.abs(e.movementY) > MAX_LOOK_STEP) return;
         walkInput.turn += e.movementX * LOOK_RATE;
         walkInput.tilt -= e.movementY * LOOK_RATE;
         return;
@@ -317,23 +346,15 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
       // Grab and pull, like a street-view panorama.
       walkInput.turn -= (e.clientX - d.x) * LOOK_RATE * 1.6;
       walkInput.tilt += (e.clientY - d.y) * LOOK_RATE * 1.6;
-      d.moved += Math.abs(e.clientX - d.x) + Math.abs(e.clientY - d.y);
       d.x = e.clientX;
       d.y = e.clientY;
     };
     const up = (e: PointerEvent) => {
-      const d = drags.get(e.pointerId);
       drags.delete(e.pointerId);
-      // A plain mouse click (not a drag) captures the pointer for mouse look.
-      if (d && e.pointerType === "mouse" && d.moved < 4 && !locked() && !getWalkHud().counterOpen) {
-        try {
-          void (el.requestPointerLock() as unknown as Promise<void> | undefined)?.catch?.(() => undefined);
-        } catch {
-          // Pointer lock is optional; dragging still works.
-        }
-      }
     };
     const lockChange = () => setWalkHud({ pointerLocked: locked() });
+    // Capture may have begun before these listeners (Depart captures in its own click).
+    lockChange();
     el.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
@@ -530,7 +551,7 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
     const st = stations[s.where];
     switch (hud.prompt.action) {
       case "counter":
-        if (document.pointerLockElement) document.exitPointerLock();
+        unlockWalkPointer();
         setWalkHud({ counterOpen: true });
         break;
       case "scan-in": {

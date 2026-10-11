@@ -6,6 +6,8 @@ import type { SimulationState } from "../../simulation/types";
 import { formatClock } from "../../utils/format";
 import { ArrowRight, Play, Restart } from "../ui/Icons";
 import { buttonClass } from "../ui/Button";
+import { useViewStore } from "../../simulation/store";
+import { lockWalkPointer } from "../../three/walkState";
 
 function StationName({ name, nameTa, size = "lg" }: { name: string; nameTa: string | null; size?: "lg" | "md" }) {
   return (
@@ -44,13 +46,11 @@ function StatusPill({ text, dot }: { text: string; dot: string }) {
 export function ArrivalOverlay({
   engine,
   snap,
-  autoplayBlocked,
   summaryShown = false,
   walking = false,
 }: {
   engine: SimulationEngine;
   snap: SimulationState;
-  autoplayBlocked: boolean;
   /** The JourneySummary card handles the finished state; don't draw the plain arrival screen. */
   summaryShown?: boolean;
   /** Walk mode: the train waits for the passenger on foot, so there is no "Depart" screen. */
@@ -71,11 +71,19 @@ export function ArrivalOverlay({
       <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6">
         <StationName name={engine.journey.from.name} nameTa={engine.journey.from.nameTa} />
         <div className="pointer-events-auto flex flex-col items-center gap-3">
-          <button type="button" onClick={() => engine.play()} className={buttonClass("primary", "lg")} autoFocus={autoplayBlocked}>
+          <button
+            type="button"
+            onClick={() => {
+              // The journey starts on foot: from the street, through the ticket hall, to the waiting train.
+              useViewStore.getState().setCameraMode("walk");
+              lockWalkPointer();
+            }}
+            className={buttonClass("primary", "lg")}
+          >
             <Play size={16} /> Depart for {engine.journey.to.name}
           </button>
-          <span className="text-[13px] text-[#c9d1dc] [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
-            {stops.length - 1} {stops.length - 1 === 1 ? "stop" : "stops"} · press Space to start or pause
+          <span className="text-center text-[13px] text-[#c9d1dc] [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
+            {stops.length - 1} {stops.length - 1 === 1 ? "stop" : "stops"} · walk from the street to the train · press Space to just ride
           </span>
         </div>
       </div>
