@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight } from "../ui/Icons";
 import { SiteHeader } from "../navigation/SiteHeader";
 import { useWebGL } from "../../hooks/useWebGL";
@@ -22,12 +22,41 @@ export interface HeroProps {
 export function Hero({ stations, ride, lineColours }: HeroProps) {
   // Lifted a little towards white so the darker ones (the Purple Line) still read on the dusk scene.
   const fill = `linear-gradient(90deg, ${lineColours.map((c) => `color-mix(in oklab, ${c} 78%, white)`).join(", ")})`;
-  const webgl = useWebGL();
+  // The 3D backdrop waits until the page has loaded and the browser is idle, so the WebGL probe and
+  // the scene build don't hold up hydration or the headline's entrance. The poster covers the wait.
+  const [start, setStart] = useState(false);
+  useEffect(() => {
+    let idle = 0;
+    let timer = 0;
+    const go = () => {
+      if (typeof requestIdleCallback === "function") idle = requestIdleCallback(() => setStart(true), { timeout: 1500 });
+      else timer = window.setTimeout(() => setStart(true), 200);
+    };
+    if (document.readyState === "complete") go();
+    else window.addEventListener("load", go, { once: true });
+    return () => {
+      window.removeEventListener("load", go);
+      if (idle) cancelIdleCallback(idle);
+      window.clearTimeout(timer);
+    };
+  }, []);
+  const webgl = useWebGL(start);
   const reduced = usePrefersReducedMotion();
   const [sceneReady, setSceneReady] = useState(false);
+  const section = useRef<HTMLElement>(null);
+  const [onScreen, setOnScreen] = useState(true);
+
+  // Stop drawing the 3D scene once the hero has scrolled out of view; pick up where it left off on the way back.
+  useEffect(() => {
+    const el = section.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([entry]) => setOnScreen(entry.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
-    <section className="relative isolate h-[100svh] min-h-[640px] w-full overflow-hidden" aria-labelledby="hero-title">
+    <section ref={section} className="relative isolate h-[100svh] min-h-[640px] w-full overflow-hidden" aria-labelledby="hero-title">
       {/* Poster shown until the 3D scene is ready (and as the WebGL fallback). */}
       <div
         aria-hidden="true"
@@ -40,7 +69,8 @@ export function Hero({ stations, ride, lineColours }: HeroProps) {
       {webgl === "supported" && (
         <div className={`absolute inset-0 -z-10 transition-opacity duration-1000 ${sceneReady ? "opacity-100" : "opacity-0"}`}>
           <SceneErrorBoundary fallback={null}>
-            <HeroScene reducedMotion={reduced} onReady={() => setSceneReady(true)} />
+            {/* paused: stops rendering while the hero is off screen (see the observer above). */}
+            <HeroScene reducedMotion={reduced} paused={!onScreen} onReady={() => setSceneReady(true)} />
           </SceneErrorBoundary>
         </div>
       )}
