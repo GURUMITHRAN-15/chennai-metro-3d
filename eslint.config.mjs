@@ -20,5 +20,13 @@ export default defineConfig([
       "react-hooks/immutability": "off",
     },
   },
-  globalIgnores([".next/**", "out/**", "node_modules/**", "next-env.d.ts", "scripts/**"]),
+  globalIgnores([
+    ".next/**",
+    "out/**",
+    "node_modules/**",
+    "next-env.d.ts",
+    "scripts/**",
+    // Minified bundle of src/three/world/tileWorker.ts (scripts/build-worker.mjs).
+    "public/world/tileWorker.js",
+  ]),
 ]);
