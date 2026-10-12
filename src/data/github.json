@@ -1,0 +1,31 @@
+{
+  "fetchedAt": "2026-10-12T09:05:32.775Z",
+  "stars": 10,
+  "forks": 5,
+  "contributors": [
+    {
+      "login": "madesh-ops",
+      "avatar": "https://avatars.githubusercontent.com/u/63498607?v=4",
+      "url": "https://github.com/madesh-ops",
+      "commits": 49
+    },
+    {
+      "login": "dharunashokkumar",
+      "avatar": "https://avatars.githubusercontent.com/u/177456969?v=4",
+      "url": "https://github.com/dharunashokkumar",
+      "commits": 5
+    },
+    {
+      "login": "GURUMITHRAN-15",
+      "avatar": "https://avatars.githubusercontent.com/u/252415058?v=4",
+      "url": "https://github.com/GURUMITHRAN-15",
+      "commits": 1
+    },
+    {
+      "login": "Pradeesh890",
+      "avatar": "https://avatars.githubusercontent.com/u/132539023?v=4",
+      "url": "https://github.com/Pradeesh890",
+      "commits": 1
+    }
+  ]
+}

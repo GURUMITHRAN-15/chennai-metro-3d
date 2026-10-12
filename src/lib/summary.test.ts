@@ -36,3 +36,13 @@ test("station pages pick a served route, links carry the route", () => {
   assert.equal(routeForStation("alapakkam")!.id, "line-4-poonamallee-vadapalani");
   assert.equal(simulatorHref("line-2-central-st-thomas-mount", "central", "alandur"), "/simulator?route=line-2-central-st-thomas-mount&from=central&to=alandur");
 });
+
+test("the GitHub snapshot for the landing page has numbers and linked contributors", async () => {
+  const { default: gh } = await import("../data/github.json", { with: { type: "json" } });
+  assert.ok(Number.isInteger(gh.stars) && gh.stars >= 0 && Number.isInteger(gh.forks) && gh.forks >= 0);
+  assert.ok(gh.contributors.length > 0, "at least one contributor");
+  for (const c of gh.contributors) {
+    assert.ok(c.login && c.url.startsWith("https://github.com/") && c.avatar.startsWith("https://"), c.login);
+    assert.ok(Number.isInteger(c.commits) && c.commits > 0);
+  }
+});

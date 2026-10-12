@@ -8,6 +8,8 @@ const base = process.argv[2] ?? "/chennai-metro-3d";
 // The world-tile worker is bundled separately (see scripts/build-worker.mjs).
 const worker = spawnSync("node", ["scripts/build-worker.mjs"], { stdio: "inherit", shell: true });
 if (worker.status !== 0) process.exit(worker.status ?? 1);
+// Stars, forks and contributors for the landing page (never fails the build).
+spawnSync("node", ["scripts/github-stats.mjs"], { stdio: "inherit", shell: true });
 const result = spawnSync("npx", ["next", "build"], {
   stdio: "inherit",
   shell: true,

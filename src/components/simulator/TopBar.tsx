@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Logo } from "../ui/Logo";
 import { Segmented } from "../ui/Segmented";
 import { Clear, Cloud, CloudRain, Expand, Keyboard, Moon, More, Shrink, Sliders, Sun } from "../ui/Icons";
@@ -9,15 +9,19 @@ import { CAMERA_MODES, useViewStore, type CameraMode, type Weather } from "../..
 type WebkitDocument = Document & { webkitFullscreenElement?: Element | null; webkitFullscreenEnabled?: boolean; webkitExitFullscreen?: () => void };
 type WebkitElement = HTMLElement & { webkitRequestFullscreen?: () => void };
 
+const fullscreenSupported = () => {
+  const d = document as WebkitDocument;
+  return Boolean(d.fullscreenEnabled || d.webkitFullscreenEnabled);
+};
+const noSubscribe = () => () => {};
+
 const fullscreenElement = () => document.fullscreenElement ?? (document as WebkitDocument).webkitFullscreenElement ?? null;
 
 export function useFullscreen() {
   const [full, setFull] = useState(false);
-  // iPhone Safari has no page fullscreen: callers hide the button there (false until mounted).
-  const [supported, setSupported] = useState(false);
+  // iPhone Safari has no page fullscreen: callers hide the button there (false on the server).
+  const supported = useSyncExternalStore(noSubscribe, fullscreenSupported, () => false);
   useEffect(() => {
-    const d = document as WebkitDocument;
-    setSupported(Boolean(d.fullscreenEnabled || d.webkitFullscreenEnabled));
     const on = () => setFull(Boolean(fullscreenElement()));
     document.addEventListener("fullscreenchange", on);
     document.addEventListener("webkitfullscreenchange", on);

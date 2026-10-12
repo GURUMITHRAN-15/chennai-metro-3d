@@ -31,6 +31,9 @@ jobs:
       - name: Static export
         # Project pages are served from /<repository-name>/
         run: npm run build:pages -- /${{ github.event.repository.name }}
+        env:
+          # Lifts the API rate limit for the stars and contributors snapshot (scripts/github-stats.mjs).
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: out

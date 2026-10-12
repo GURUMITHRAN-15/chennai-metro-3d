@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Hero } from "../components/landing/Hero";
+import { OpenSource } from "../components/landing/OpenSource";
 import { SiteFooter } from "../components/navigation/SiteFooter";
 import { NetworkMap } from "../components/route/NetworkMap";
 import { ArrowRight } from "../components/ui/Icons";
@@ -123,7 +124,8 @@ export default function HomePage() {
           <div className="flex flex-col gap-6">
             <p className="max-w-[36rem] text-[16px] leading-relaxed text-muted">
               Track, streets and buildings come from OpenStreetMap; fares, timings and opening dates from CMRL and published reports. No
-              paid services, no tracking. Where something is estimated, the sources page says so.
+              paid services and no ads; visits are counted anonymously, without cookies. Where something is estimated, the sources page says
+              so.
             </p>
             <div className="flex flex-wrap gap-x-7 gap-y-3 text-[15px] font-medium">
               <Link href="/about" className="group inline-flex items-center gap-1.5 text-ink/85 transition-colors hover:text-ink">
@@ -136,6 +138,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <OpenSource />
 
       <SiteFooter lastVerified={first.lastVerified} />
     </>

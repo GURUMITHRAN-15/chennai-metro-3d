@@ -62,9 +62,10 @@ export default function AboutPage() {
             through tunnels and curved station halls; above ground, along real roads and past real landmarks.
           </p>
           <p>
-            It runs entirely in your browser, with no paid services, no API keys and no tracking: open-source libraries, data kept as JSON in the
-            project, textures drawn as it loads, and announcements spoken by your browser&apos;s own voice. It is an independent project, not
-            affiliated with Chennai Metro Rail Limited.
+            It runs entirely in your browser, with no paid services, no API keys and no ads: open-source libraries, data kept as JSON in the
+            project, textures drawn as it loads, and announcements spoken by your browser&apos;s own voice. Visits are counted anonymously with
+            GoatCounter: no cookies and nothing that identifies you. It is an independent project, not affiliated with Chennai Metro Rail
+            Limited.
           </p>
         </div>
 
@@ -124,6 +125,7 @@ export default function AboutPage() {
               "Next.js, React, Tailwind CSS, Zustand: MIT licence",
               "Geist and Geist Mono by Vercel: SIL Open Font License 1.1",
               "Noto Sans Tamil by Google: SIL Open Font License 1.1",
+              "Visit counts: GoatCounter (goatcounter.com), cookie-free and anonymous",
               "Station lists for Lines 3 and 5 where OpenStreetMap is incomplete: Wikipedia (Purple Line, Red Line), CC BY-SA 4.0",
             ].map((c) => (
               <li key={c} className="border-t border-line py-3">
