@@ -99,6 +99,10 @@ function ball(c: Vector3, r: number, seg: number, sx = 1, sy = 1, sz = 1): Buffe
   return g;
 }
 
+/** Phone pose: each wrist (x mirrored per side, y from the shoulder line) and how far the phone lies back (radians). */
+const PHONE_WRIST = { x: 0.05, y: -0.2, z: 0.27 };
+const PHONE_TILT = 0.9;
+
 function slab(cx: number, cy: number, cz: number, w: number, h: number, d: number): BufferGeometry {
   return new BoxGeometry(w, h, d).translate(cx, cy, cz);
 }
@@ -258,7 +262,7 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
       arm(s, e, V(s * (sh - 0.01), shY + 0.33, 0.06));
     } else if (pose === "phone") {
       const e = V(s * (sh + 0.01), shY - 0.27, 0.05);
-      arm(s, e, V(s * 0.05, shY - 0.2, 0.27));
+      arm(s, e, V(s * PHONE_WRIST.x, shY + PHONE_WRIST.y, PHONE_WRIST.z));
     } else if (sit) {
       const e = V(s * (sh + 0.02), shY - 0.26, 0.08);
       arm(s, e, V(s * 0.1, hipY + 0.14, 0.3));
@@ -267,7 +271,12 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
       arm(s, e, V(s * (sh + 0.045), S.y - 0.53, 0.04));
     }
   }
-  if (pose === "phone") minor(slab(0, shY - 0.17, 0.32, 0.075, 0.14, 0.012).rotateX(-0.6), PART.phone);
+  if (pose === "phone") {
+    // Held in both hands where they meet, lying back so the screen faces the eyes.
+    // Tilted about its own centre first, then moved there.
+    const phone = new BoxGeometry(0.075, 0.14, 0.012).rotateX(PHONE_TILT).translate(0, shY + PHONE_WRIST.y + 0.045, PHONE_WRIST.z + 0.06);
+    minor(phone, PART.phone);
+  }
 
   // --- Neck and head ----------------------------------------------------
   add(limb(V(0, Y(1.45), 0), V(0, Y(1.52), 0.005), 0.046, lseg), PART.skin);

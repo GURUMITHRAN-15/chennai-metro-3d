@@ -39,3 +39,28 @@ test("painting replaces part ids with colours", () => {
 test("city pedestrians use every crowd variant", () => {
   assert.equal(PEOPLE_VARIANTS, CROWD_VARIANTS.length);
 });
+
+test("the phone is held in both hands, in front of the chest", () => {
+  for (const outfit of ["tshirt", "kurta"] as const) {
+    const g = humanTemplate({ outfit, pose: "phone", detail: "low" });
+    const pos = g.getAttribute("position");
+    const part = g.getAttribute("aPart");
+    const phone: [number, number, number][] = [];
+    const skin: [number, number, number][] = [];
+    for (let i = 0; i < pos.count; i++) {
+      const p: [number, number, number] = [pos.getX(i), pos.getY(i), pos.getZ(i)];
+      if (part.getX(i) === PART.phone) phone.push(p);
+      else if (part.getX(i) === PART.skin && p[2] > 0.2) skin.push(p);
+    }
+    assert.ok(phone.length > 0 && skin.length > 0);
+    const c = phone.reduce((a, p) => [a[0] + p[0] / phone.length, a[1] + p[1] / phone.length, a[2] + p[2] / phone.length], [0, 0, 0]);
+    assert.ok(Math.abs(c[0]) < 0.01, `phone centred across the body (${c[0].toFixed(3)})`);
+    assert.ok(c[2] > 0.25 && c[2] < 0.45, `phone in front of the chest (${c[2].toFixed(3)})`);
+    assert.ok(c[1] > 1.0 && c[1] < 1.4, `phone at chest height (${c[1].toFixed(3)})`);
+    // The hands touch it: some hand vertex within 3 cm of the phone, on each side.
+    for (const s of [-1, 1]) {
+      const near = skin.filter((h) => h[0] * s > 0).some((h) => phone.some((p) => Math.hypot(h[0] - p[0], h[1] - p[1], h[2] - p[2]) < 0.03));
+      assert.ok(near, `${outfit}: ${s < 0 ? "left" : "right"} hand on the phone`);
+    }
+  }
+});
