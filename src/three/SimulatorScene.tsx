@@ -2,9 +2,9 @@
 
 import { PerformanceMonitor } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
-import { RenderGate } from "./RenderGate.tsx";
+import { RenderGate, configureShaderChecks, warmPrograms } from "./RenderGate.tsx";
 import { SceneContext, createTrafficState, createTrainPose, type SceneContextValue } from "./SceneContext.tsx";
 import { createSceneEnv } from "./env.ts";
 import { CabinDisplays } from "./CabinDisplays.tsx";
@@ -69,6 +69,8 @@ function ReadyGate({ armed, onReady, open }: { armed: boolean; onReady: () => vo
       stage.current = 1;
       gl.compileAsync(scene, camera)
         .catch(() => undefined)
+        // Spread each program's first-use driver queries over a few frames, behind the loading screen.
+        .then(() => warmPrograms(gl))
         .then(() => {
           stage.current = 2;
           open.current = true;
@@ -101,7 +103,7 @@ export interface SimulatorSceneProps {
   onContextLost?: () => void;
 }
 
-export default function SimulatorScene({ engine, onProgress, onContextLost }: SimulatorSceneProps) {
+function SimulatorScene({ engine, onProgress, onContextLost }: SimulatorSceneProps) {
   const settings = useViewStore((s) => s.settings);
   const timeOfDay = useViewStore((s) => s.timeOfDay);
   const weather = useViewStore((s) => s.weather);
@@ -125,6 +127,8 @@ export default function SimulatorScene({ engine, onProgress, onContextLost }: Si
   // The real street grid comes from the world tiles; no invented cross streets.
   const crossStreets = useMemo<number[]>(() => [], []);
   const signal = useMemo<StationSignalState>(() => ({ holdAt: null }), []);
+  // Stable array, so MapOverlay's label sort isn't redone on every render.
+  const highlightIds = useMemo(() => [engine.journey.from.id, engine.journey.to.id], [engine]);
   const renderOpen = useRef(false);
 
   // The environment is the street furniture (City) plus the first world tiles round the train.
@@ -189,6 +193,8 @@ export default function SimulatorScene({ engine, onProgress, onContextLost }: Si
       gl={{ antialias: settings.quality !== "low", powerPreference: "high-performance", stencil: false }}
       camera={{ fov: 42, near: 0.5, far: 9000, position: [0, 40, 80] }}
       onCreated={({ gl }) => {
+        // Production builds skip three.js's blocking shader-log check (see RenderGate.tsx).
+        configureShaderChecks(gl);
         gl.toneMapping = ACESFilmicToneMapping;
         gl.outputColorSpace = SRGBColorSpace;
         gl.domElement.addEventListener(
@@ -233,7 +239,7 @@ export default function SimulatorScene({ engine, onProgress, onContextLost }: Si
         <Train destination={engine.journey.to.name} lineColour={route.line.colour} />
         <CabinDisplays engine={engine} />
         <Rain count={RAIN_DROPS[settings.quality]} enabled={settings.weatherEffects} />
-        <MapOverlay highlightIds={[engine.journey.from.id, engine.journey.to.id]} />
+        <MapOverlay highlightIds={highlightIds} />
         <WalkMode engine={engine} reducedMotion={settings.reducedMotion} />
         <CameraRig reducedMotion={settings.reducedMotion} cameraShake={settings.cameraShake} getArrival={getArrival} />
         <DevProbe />
@@ -243,3 +249,7 @@ export default function SimulatorScene({ engine, onProgress, onContextLost }: Si
     </Canvas>
   );
 }
+
+// The simulator HUD re-renders ten times a second while the ride plays. This scene's
+// props are stable and everything that moves reads the engine in useFrame, so it skips those.
+export default memo(SimulatorScene);

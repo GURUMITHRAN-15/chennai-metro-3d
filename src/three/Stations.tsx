@@ -29,7 +29,7 @@ import type { StationModel } from "../simulation/RouteController.ts";
 import { crowdFactor } from "../simulation/crowd.ts";
 import { useViewStore } from "../simulation/store.ts";
 import { useHour } from "./CabinPeople.tsx";
-import { createHumanMaterial, crowdMesh, CROWD_VARIANTS, pickColours, type CrowdMember } from "./humanModel.ts";
+import { createHumanMaterial, CrowdLod, CROWD_VARIANTS, pickColours, type CrowdMember } from "./humanModel.ts";
 import { platformCrowd } from "./walkState.ts";
 
 export interface StationSignalState {
@@ -316,6 +316,8 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
     const base = quality === "low" ? 0 : quality === "medium" ? 7 : 12;
     const peopleCount = base ? Math.max(1, Math.round(base * 2 * crowdLevel)) : 0;
     let people: Group | null = null;
+    let peopleMaterial: MeshStandardMaterial | null = null;
+    const crowds: CrowdLod[] = [];
     platformCrowd.clear();
     if (peopleCount && served.length) {
       // Real-proportioned figures in a few outfits and poses, one instanced mesh per variant.
@@ -341,9 +343,14 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
         }
       }
       people = new Group();
-      const material = createHumanMaterial();
+      peopleMaterial = createHumanMaterial();
+      // One near/far detail pair per variant (CrowdLod); people are sorted by their own distance,
+      // since a variant's crowd spans every platform on the line.
       groups.forEach((members, v) => {
-        if (members.length) people!.add(crowdMesh(CROWD_VARIANTS[v], members, material));
+        if (!members.length) return;
+        const lod = new CrowdLod(CROWD_VARIANTS[v], members, peopleMaterial!);
+        crowds.push(lod);
+        people!.add(lod.object);
       });
     }
     let barricades: InstancedMesh | null = null;
@@ -365,17 +372,19 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
       }
       barricades.computeBoundingSphere();
     }
-    return { people, barricades };
+    return { people, peopleMaterial, crowds, barricades };
   }, [inRange, alignment, params, quality, crowdLevel, route.profile]);
   // Rebuilt when the crowd changes, so free the old meshes.
   useEffect(
     () => () => {
-      const meshes = [...((extras.people?.children ?? []) as InstancedMesh[]), extras.barricades];
-      for (const mesh of meshes) {
-        if (!mesh) continue;
-        mesh.geometry.dispose();
-        (mesh.material as MeshStandardMaterial).dispose();
-        mesh.dispose();
+      // Crowd geometry per CrowdLod; the one material they share is freed once.
+      for (const lod of extras.crowds) lod.dispose();
+      extras.peopleMaterial?.dispose();
+      const b = extras.barricades;
+      if (b) {
+        b.geometry.dispose();
+        (b.material as MeshStandardMaterial).dispose();
+        b.dispose();
       }
     },
     [extras],
@@ -411,7 +420,9 @@ export function Stations({ signal }: { signal?: StationSignalState }) {
   const lastHold = useRef<string | null>("__init__");
   const tmpColor = useMemo(() => new Color(), []);
   const { pose } = useScene();
-  useFrame(() => {
+  useFrame(({ camera }) => {
+    // Platform crowds: near or far detail by distance to the camera.
+    for (const lod of extras.crowds) lod.update(camera.position);
     const n = env.night;
     if (pools) {
       const mat = pools.material as MeshBasicMaterial;

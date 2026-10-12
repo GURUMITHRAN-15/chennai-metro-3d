@@ -5,6 +5,7 @@ import {
   CapsuleGeometry,
   Color,
   CylinderGeometry,
+  Group,
   InstancedBufferAttribute,
   InstancedMesh,
   LatheGeometry,
@@ -34,7 +35,8 @@ import { pick, type Rng } from "../utils/random.ts";
 export type Outfit = "shirt" | "tshirt" | "veshti" | "saree" | "kurta";
 export type Pose = "stand" | "strap" | "phone" | "sit";
 export type Hair = "short" | "long" | "bun";
-export type Detail = "high" | "low";
+/** "far" is for crowds seen from a distance (see CrowdLod): fewer segments, and no parts too small to see. */
+export type Detail = "high" | "low" | "far";
 
 /** Body part ids stored in the aPart attribute. */
 export const PART = { skin: 0, top: 1, bottom: 2, hair: 3, shoe: 4, accent: 5, light: 6, phone: 7 } as const;
@@ -75,7 +77,8 @@ function tag(g: BufferGeometry, part: Part): BufferGeometry {
 function limb(a: Vector3, b: Vector3, r: number, seg: number): BufferGeometry {
   const dir = new Vector3().subVectors(b, a);
   const len = Math.max(0.001, dir.length());
-  const g = new CapsuleGeometry(r, Math.max(0.001, len), 2, seg);
+  // The coarsest limbs (far detail) get single-segment end caps.
+  const g = new CapsuleGeometry(r, Math.max(0.001, len), seg <= 3 ? 1 : 2, seg);
   g.applyQuaternion(new Quaternion().setFromUnitVectors(up, dir.normalize()));
   const mid = new Vector3().addVectors(a, b).multiplyScalar(0.5);
   g.translate(mid.x, mid.y, mid.z);
@@ -137,11 +140,18 @@ export function humanTemplate(spec: HumanSpec): BufferGeometry {
 
 function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSpec): BufferGeometry {
   const hi = detail === "high";
-  const seg = hi ? 10 : 6;
-  const lseg = hi ? 7 : 5;
+  // Far detail: about 40% of the triangles of low detail (body segments 5, limb segments 3).
+  const far = detail === "far";
+  const seg = hi ? 10 : far ? 5 : 6;
+  const lseg = hi ? 7 : far ? 3 : 5;
   const woman = outfit === "saree" || outfit === "kurta";
   const parts: BufferGeometry[] = [];
   const add = (g: BufferGeometry, p: Part) => parts.push(tag(g, p));
+  // Shoes, hands, trims and the like: under a pixel at the distances far detail is drawn at.
+  const minor = (g: BufferGeometry, p: Part) => {
+    if (far) g.dispose();
+    else add(g, p);
+  };
 
   // Proportions (metres, standing): women are drawn a little narrower; height varies per instance.
   const sh = woman ? 0.165 : 0.19; // shoulder half-width
@@ -178,7 +188,7 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
       add(limb(V(ankle.x, 0.16, ankle.z), ankle, 0.045, lseg), PART.skin);
     }
     // Shoes / sandals.
-    add(slab(ankle.x, ankle.y - 0.05, ankle.z + 0.05, 0.085, 0.06, 0.22), PART.shoe);
+    minor(slab(ankle.x, ankle.y - 0.05, ankle.z + 0.05, 0.085, 0.06, 0.22), PART.shoe);
   }
   if (legsCovered && !sit) {
     // Draped saree / veshti: a gently flaring skirt from the waist to the ankles.
@@ -186,7 +196,7 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
     add(lathe([[0.001, 0.12], [flare, 0.13], [flare - 0.02, 0.4], [hipW + 0.02, 0.8], [hipW, 1.0], [0.001, 1.01]], seg, 0.72), PART.bottom);
     if (outfit === "saree") {
       // Front pleats: a slightly darker panel.
-      add(slab(0, 0.5, 0.17, 0.12, 0.72, 0.02), PART.accent);
+      minor(slab(0, 0.5, 0.17, 0.12, 0.72, 0.02), PART.accent);
     }
   }
   if (sit && legsCovered) {
@@ -208,28 +218,28 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
     // Pallu: from the right hip across the chest, over the left shoulder, down the back.
     add(band(V(0.1, Y(0.98), 0.13), V(-0.12, Y(1.42), 0.08), 0.2, 0.025, 0.4), PART.bottom);
     add(band(V(-0.14, Y(1.43), 0.0), V(-0.12, Y(0.9), -0.15), 0.22, 0.025), PART.bottom);
-    add(band(V(0.13, Y(0.98), 0.145), V(-0.1, Y(1.41), 0.095), 0.03, 0.03, 0.4), PART.accent);
+    minor(band(V(0.13, Y(0.98), 0.145), V(-0.1, Y(1.41), 0.095), 0.03, 0.03, 0.4), PART.accent);
   } else if (outfit === "kurta") {
     // Long kurta to the knee over leggings; dupatta over both shoulders.
     add(lathe([[0.001, Y(0.55)], [0.2, Y(0.56)], [0.18, Y(0.85)], [0.15, waistY], [0.165, chestY], [sh, Y(1.38)], [0.07, Y(1.47)], [0.001, Y(1.47)]], seg), PART.top);
-    for (const s of [-1, 1]) add(band(V(s * 0.115, Y(1.44), 0.02), V(s * 0.1, Y(1.0), 0.13), 0.065, 0.015), PART.accent);
-    add(band(V(-0.11, Y(1.44), 0.075), V(0.11, Y(1.44), 0.075), 0.05, 0.015), PART.accent);
+    for (const s of [-1, 1]) minor(band(V(s * 0.115, Y(1.44), 0.02), V(s * 0.1, Y(1.0), 0.13), 0.065, 0.015), PART.accent);
+    minor(band(V(-0.11, Y(1.44), 0.075), V(0.11, Y(1.44), 0.075), 0.05, 0.015), PART.accent);
   } else {
     const bottom = outfit === "veshti" ? 0.9 : 0.84;
     add(lathe([[0.001, Y(bottom)], [hipW + 0.01, Y(bottom)], [0.145, waistY], [0.175, chestY], [sh, Y(1.38)], [0.08, Y(1.47)], [0.001, Y(1.47)]], seg), PART.top);
     if (outfit === "shirt") {
       // Collar and buttons strip.
       add(lathe([[0.001, Y(1.44)], [0.075, Y(1.44)], [0.065, Y(1.5)], [0.001, Y(1.5)]], seg), PART.top);
-      add(slab(0, Y(1.2), 0.118, 0.015, 0.4, 0.01), PART.light);
+      minor(slab(0, Y(1.2), 0.118, 0.015, 0.4, 0.01), PART.light);
     }
-    if (outfit !== "veshti") add(lathe([[0.001, Y(0.94)], [hipW + 0.015, Y(0.94)], [hipW + 0.015, Y(0.98)], [0.001, Y(0.98)]], seg), PART.shoe);
+    if (outfit !== "veshti") minor(lathe([[0.001, Y(0.94)], [hipW + 0.015, Y(0.94)], [hipW + 0.015, Y(0.98)], [0.001, Y(0.98)]], seg), PART.shoe);
   }
 
   // --- Arms -------------------------------------------------------------
   const sleeveLong = outfit === "shirt" || outfit === "kurta";
   const arm = (s: number, elbow: Vector3, wrist: Vector3) => {
     const shoulder = V(s * (sh - 0.02), shY - 0.02, 0);
-    add(ball(shoulder, 0.055, lseg), PART.top);
+    minor(ball(shoulder, 0.055, lseg), PART.top);
     // Short sleeves (T-shirt, blouse) show the upper arm.
     const sleeveEnd = sleeveLong ? elbow : new Vector3().lerpVectors(shoulder, elbow, 0.45);
     add(limb(shoulder, sleeveEnd, 0.052, lseg), PART.top);
@@ -237,7 +247,7 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
     add(limb(elbow, wrist, 0.038, lseg), sleeveLong && outfit === "shirt" ? PART.top : PART.skin);
     if (outfit === "kurta") add(limb(elbow, new Vector3().lerpVectors(elbow, wrist, 0.6), 0.042, lseg), PART.top);
     const handDir = new Vector3().subVectors(wrist, elbow).normalize();
-    add(ball(wrist.clone().addScaledVector(handDir, 0.06), 0.042, lseg, 0.8, 1.15, 0.6), PART.skin);
+    minor(ball(wrist.clone().addScaledVector(handDir, 0.06), 0.042, lseg, 0.8, 1.15, 0.6), PART.skin);
   };
   for (const s of [-1, 1]) {
     const S = V(s * (sh - 0.02), shY - 0.02, 0);
@@ -257,7 +267,7 @@ function buildTemplate({ outfit, pose, hair, jasmine, detail = "high" }: HumanSp
       arm(s, e, V(s * (sh + 0.045), S.y - 0.53, 0.04));
     }
   }
-  if (pose === "phone") add(slab(0, shY - 0.17, 0.32, 0.075, 0.14, 0.012).rotateX(-0.6), PART.phone);
+  if (pose === "phone") minor(slab(0, shY - 0.17, 0.32, 0.075, 0.14, 0.012).rotateX(-0.6), PART.phone);
 
   // --- Neck and head ----------------------------------------------------
   add(limb(V(0, Y(1.45), 0), V(0, Y(1.52), 0.005), 0.046, lseg), PART.skin);
@@ -439,6 +449,92 @@ export function crowdMesh(spec: HumanSpec, members: CrowdMember[], material: Mes
   for (const [k, v] of Object.entries(attrs)) geo.setAttribute(k, new InstancedBufferAttribute(v, 3));
   mesh.computeBoundingSphere();
   return mesh;
+}
+
+/** A crowd member switches to far detail beyond FAR metres from the camera, and back inside NEAR (no flicker at the edge). */
+const CROWD_LOD = { NEAR: 50, FAR: 60 };
+const CROWD_COLOURS = ["aSkin", "aTop", "aBottom", "aAccent"] as const;
+const lodCam = new Vector3();
+
+/**
+ * A crowd drawn at two levels of detail: everyone within about 55 m of the
+ * camera uses the given template, everyone farther away a far-detail one
+ * (about 40% of the triangles; at that distance a person is ~35 px tall).
+ * Each person is sorted into one of two instanced meshes by their own
+ * distance, so a crowd spread along the whole line still works. Starts with
+ * everyone near until the first update().
+ */
+export class CrowdLod {
+  readonly object = new Group();
+  private readonly near: InstancedMesh;
+  private readonly far: InstancedMesh;
+  private readonly matrices: Float32Array;
+  private readonly colours: Float32Array[];
+  private readonly isNear: Uint8Array;
+  private readonly lastCam = new Vector3(Infinity, 0, 0);
+
+  constructor(spec: HumanSpec, members: CrowdMember[], material: MeshStandardMaterial) {
+    this.near = crowdMesh(spec, members, material);
+    this.far = crowdMesh({ ...spec, detail: "far" }, members, material);
+    this.matrices = (this.near.instanceMatrix.array as Float32Array).slice();
+    this.colours = CROWD_COLOURS.map((k) => (this.near.geometry.getAttribute(k).array as Float32Array).slice());
+    this.isNear = new Uint8Array(members.length).fill(1);
+    this.far.count = 0;
+    this.far.visible = false;
+    this.object.add(this.near, this.far);
+  }
+
+  /** Re-sort people between the two meshes for this camera position (world space). Cheap when nothing changes. */
+  update(camera: Vector3) {
+    if (camera.distanceToSquared(this.lastCam) < 1) return;
+    this.lastCam.copy(camera);
+    const c = this.near.worldToLocal(lodCam.copy(camera));
+    const m = this.matrices;
+    const near2 = CROWD_LOD.NEAR * CROWD_LOD.NEAR;
+    const far2 = CROWD_LOD.FAR * CROWD_LOD.FAR;
+    let changed = false;
+    for (let i = 0; i < this.isNear.length; i++) {
+      const dx = m[i * 16 + 12] - c.x;
+      const dy = m[i * 16 + 13] - c.y;
+      const dz = m[i * 16 + 14] - c.z;
+      const d2 = dx * dx + dy * dy + dz * dz;
+      if (this.isNear[i] && d2 > far2) {
+        this.isNear[i] = 0;
+        changed = true;
+      } else if (!this.isNear[i] && d2 < near2) {
+        this.isNear[i] = 1;
+        changed = true;
+      }
+    }
+    if (changed) this.rebuild();
+  }
+
+  private rebuild() {
+    const slots = [0, 0];
+    const meshes = [this.far, this.near];
+    for (let i = 0; i < this.isNear.length; i++) {
+      const which = this.isNear[i];
+      const mesh = meshes[which];
+      const s = slots[which]++;
+      (mesh.instanceMatrix.array as Float32Array).set(this.matrices.subarray(i * 16, i * 16 + 16), s * 16);
+      CROWD_COLOURS.forEach((k, j) => (mesh.geometry.getAttribute(k).array as Float32Array).set(this.colours[j].subarray(i * 3, i * 3 + 3), s * 3));
+    }
+    meshes.forEach((mesh, which) => {
+      mesh.count = slots[which];
+      mesh.visible = slots[which] > 0;
+      mesh.instanceMatrix.needsUpdate = true;
+      for (const k of CROWD_COLOURS) mesh.geometry.getAttribute(k).needsUpdate = true;
+      if (mesh.visible) mesh.computeBoundingSphere();
+    });
+  }
+
+  /** Frees both meshes' geometry (the material belongs to the caller). */
+  dispose() {
+    for (const mesh of [this.near, this.far]) {
+      mesh.geometry.dispose();
+      mesh.dispose();
+    }
+  }
 }
 
 /** Instanced-crowd variants used on platforms and streets (low detail, varied looks). */

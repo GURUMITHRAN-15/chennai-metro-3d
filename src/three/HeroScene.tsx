@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Children, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 import { SceneContext, createTrafficState, createTrainPose, type SceneContextValue } from "./SceneContext.tsx";
 import { createSceneEnv } from "./env.ts";
@@ -14,7 +14,7 @@ import { Flyover } from "./Flyover.tsx";
 import { Stations } from "./Stations.tsx";
 import { City } from "./City.tsx";
 import { WorldTiles } from "./world/WorldTiles.tsx";
-import { RenderGate } from "./RenderGate.tsx";
+import { RenderGate, configureShaderChecks, warmPrograms } from "./RenderGate.tsx";
 import { Landmarks } from "./Landmarks.tsx";
 import { Traffic } from "./Traffic.tsx";
 import { CameraRig } from "./Cameras.tsx";
@@ -27,13 +27,24 @@ const CRUISE = 9.5; // m/s ≈ 34 km/h — unhurried, cinematic
  * Thelliyaragaram and Porur Junction, at dusk, with the train cruising
  * through it. The loop restarts behind a short fade.
  */
-export default function HeroScene({ reducedMotion, onReady }: { reducedMotion: boolean; onReady?: () => void }) {
+export default function HeroScene({
+  reducedMotion,
+  paused = false,
+  onReady,
+}: {
+  reducedMotion: boolean;
+  /** Off screen: render nothing until it scrolls back into view. */
+  paused?: boolean;
+  onReady?: () => void;
+}) {
   const route = useMemo(() => getRouteModel(), []);
   const env = useMemo(() => createSceneEnv(0.46), []);
   const pose = useMemo(() => createTrainPose(3), []);
   const traffic = useMemo(() => createTrafficState(), []);
   const fade = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [staged, setStaged] = useState(false);
+  const onStaged = useCallback(() => setStaged(true), []);
   const renderOpen = useRef(false);
 
   // Nearly straight run between Thelliyaragaram and Porur Junction.
@@ -77,8 +88,11 @@ export default function HeroScene({ reducedMotion, onReady }: { reducedMotion: b
         dpr={[1, quality === "low" ? 1.25 : 1.6]}
         gl={{ antialias: true, powerPreference: "high-performance" }}
         camera={{ fov: 36, near: 0.5, far: 7000, position: [0, 30, 60] }}
-        frameloop={reducedMotion ? "demand" : "always"}
+        // "never" while the hero is scrolled out of view: no rendering at all until it comes back.
+        frameloop={paused ? "never" : reducedMotion ? "demand" : "always"}
         onCreated={({ gl }) => {
+          // Production builds skip three.js's blocking shader-log check (see RenderGate.tsx).
+          configureShaderChecks(gl);
           gl.toneMapping = ACESFilmicToneMapping;
           gl.outputColorSpace = SRGBColorSpace;
         }}
@@ -87,19 +101,23 @@ export default function HeroScene({ reducedMotion, onReady }: { reducedMotion: b
         <SceneContext.Provider value={ctx}>
           <Clock t={t} paused={reducedMotion} loopLength={loopLength} fade={fade} />
           <TrainPoseDriver getMotion={getMotion} />
-          <Lighting timeOfDay="day" weather="clear" shadows={false} shadowMapSize={512} mapMode={false} dusk instant />
-          <Ground crossStreets={crossStreets} />
-          <Track />
-          <Line5Branch />
-          <Flyover />
-          <Stations />
-          <WorldTiles shadows={false} />
-          <City crossStreets={crossStreets} shadows={false} />
-          <Landmarks shadows={false} />
-          <Traffic getSimDelta={() => (reducedMotion ? 0 : 1 / 60)} enabled />
-          <Train destination="Vadapalani" lineColour={route.line.colour} />
+          {/* Mounted one per frame, in this order (see Staged); the scene graph ends up the same as before. */}
+          <Staged onDone={onStaged}>
+            <Lighting timeOfDay="day" weather="clear" shadows={false} shadowMapSize={512} mapMode={false} dusk instant />
+            <Ground crossStreets={crossStreets} />
+            <Track />
+            <Line5Branch />
+            <Flyover />
+            <Stations />
+            <WorldTiles shadows={false} />
+            <City crossStreets={crossStreets} shadows={false} />
+            <Landmarks shadows={false} />
+            <Traffic getSimDelta={() => (reducedMotion ? 0 : 1 / 60)} enabled />
+            <Train destination="Vadapalani" lineColour={route.line.colour} />
+          </Staged>
           <RenderGate open={renderOpen} />
-          <CompileThenShow armed={ready} onShown={onReady} open={renderOpen} />
+          {/* Compile only once every staged part is mounted, so none is left to compile on screen. */}
+          <CompileThenShow armed={ready && staged} onShown={onReady} open={renderOpen} />
           <CameraRig hero reducedMotion={reducedMotion} cameraShake={false} getArrival={heroArrival} />
         </SceneContext.Provider>
       </Canvas>
@@ -134,6 +152,26 @@ function Clock({
   return null;
 }
 
+/**
+ * Mounts its children one per animation frame, in order, so building the scene
+ * (canvas textures, track, stations, the train) is spread over several short
+ * tasks instead of one long one that freezes the page. The canvas stays hidden
+ * until everything is in and compiled, so nothing shows half-built.
+ */
+function Staged({ children, onDone }: { children: React.ReactNode; onDone: () => void }) {
+  const parts = Children.toArray(children);
+  const [count, setCount] = useState(1);
+  useEffect(() => {
+    if (count >= parts.length) {
+      onDone();
+      return;
+    }
+    const id = requestAnimationFrame(() => setCount((c) => c + 1));
+    return () => cancelAnimationFrame(id);
+  }, [count, parts.length, onDone]);
+  return <>{parts.slice(0, count)}</>;
+}
+
 /** Once armed, compile every shader asynchronously, then report (so the fade-in doesn't hitch). */
 function CompileThenShow({ armed, onShown, open }: { armed: boolean; onShown?: () => void; open: { current: boolean } }) {
   const { gl, scene, camera } = useThree();
@@ -143,6 +181,8 @@ function CompileThenShow({ armed, onShown, open }: { armed: boolean; onShown?: (
     started.current = true;
     gl.compileAsync(scene, camera)
       .catch(() => undefined)
+      // Spread each program's first-use driver queries over a few frames while the canvas is hidden.
+      .then(() => warmPrograms(gl))
       .then(() => {
         open.current = true;
         requestAnimationFrame(() => onShown?.());

@@ -17,7 +17,7 @@ import {
 } from "three";
 import { useScene } from "../SceneContext.tsx";
 import { createFootprintBuildingMaterial } from "../materials.ts";
-import { createSignMaterial, palmGeometry } from "../City.tsx";
+import { createSignMaterial, palmGeometry, waterTankGeometry } from "../City.tsx";
 import { ORDER } from "../Ground.tsx";
 import { ensureFontsLoaded, makeChevronTexture, makeSignAtlasTexture } from "../textures.ts";
 import { SIGN_CELLS, signAtlasNames } from "../shopNames.ts";
@@ -167,8 +167,8 @@ export function WorldTiles({ shadows }: { shadows: boolean }) {
   const shared = useMemo<Shared>(() => {
     const trunk = new CylinderGeometry(0.16, 0.22, 1, 5);
     trunk.translate(0, 0.5, 0);
-    const tank = new CylinderGeometry(0.62, 0.62, 1.15, 10);
-    tank.translate(0, 0.575, 0);
+    // Same lighter tank as City (24 triangles, no hidden base); thousands per tile set.
+    const tank = waterTankGeometry();
     return {
       building: createFootprintBuildingMaterial(env),
       flat: new MeshStandardMaterial({ vertexColors: true, roughness: 0.93, depthWrite: false }),

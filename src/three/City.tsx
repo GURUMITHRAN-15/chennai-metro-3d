@@ -6,6 +6,7 @@ import {
   AdditiveBlending,
   BoxGeometry,
   BufferGeometry,
+  CircleGeometry,
   Color,
   ConeGeometry,
   CylinderGeometry,
@@ -28,7 +29,7 @@ import { ensureFontsLoaded, makeRadialTexture, makeSignAtlasTexture } from "./te
 import { SIGN_COLS, SIGN_ROWS, signAtlasNames } from "./shopNames.ts";
 import { chunkRanges } from "../utils/geometry.ts";
 import { mulberry32 } from "../utils/random.ts";
-import { createHumanMaterial, crowdMesh, CROWD_VARIANTS, pickColours, type CrowdMember } from "./humanModel.ts";
+import { createHumanMaterial, CrowdLod, CROWD_VARIANTS, pickColours, type CrowdMember } from "./humanModel.ts";
 
 const CHUNK = 800;
 
@@ -49,6 +50,19 @@ export function palmGeometry(): BufferGeometry {
     for (const k of Object.keys(p.attributes)) if (k !== "position" && k !== "normal") p.deleteAttribute(k);
   }
   return mergeGeometries(parts)!;
+}
+
+/**
+ * Rooftop water tank: an eight-sided drum with a lid and no base (it stands on
+ * the roof, so the base is never seen). 24 triangles; there are thousands.
+ */
+export function waterTankGeometry(): BufferGeometry {
+  const side = new CylinderGeometry(0.62, 0.62, 1.15, 8, 1, true);
+  side.translate(0, 0.575, 0);
+  const lid = new CircleGeometry(0.62, 8);
+  lid.rotateX(-Math.PI / 2);
+  lid.translate(0, 1.15, 0);
+  return mergeGeometries([side, lid])!;
 }
 
 function poleGeometry(): BufferGeometry {
@@ -98,8 +112,8 @@ function useShared(): Shared {
   const shared = useMemo<Shared>(() => {
     const box = new BoxGeometry(1, 1, 1);
     box.translate(0, 0.5, 0);
-    const tank = new CylinderGeometry(0.62, 0.62, 1.15, 10);
-    tank.translate(0, 0.575, 0);
+    // Shared with WorldTiles; 24 triangles instead of the old 10-sided cylinder's 40.
+    const tank = waterTankGeometry();
     const trunk = new CylinderGeometry(0.16, 0.22, 1, 5);
     trunk.translate(0, 0.5, 0);
     const crown = new IcosahedronGeometry(1, 0);
@@ -234,23 +248,24 @@ function Crowd({ set, material }: { set: InstanceSet; material: MeshStandardMate
       groups[v].push({ matrix, colours: pickColours(CROWD_VARIANTS[v].outfit, rng) });
     }
     const g = new Group();
+    // Each variant is a near/far pair of instanced meshes (CrowdLod) instead of a single crowdMesh.
+    const lods: CrowdLod[] = [];
     groups.forEach((members, v) => {
       if (!members.length) return;
-      const mesh = crowdMesh(CROWD_VARIANTS[v], members, material);
-      mesh.matrixAutoUpdate = false;
-      g.add(mesh);
+      const lod = new CrowdLod(CROWD_VARIANTS[v], members, material);
+      lod.object.traverse((o) => (o.matrixAutoUpdate = false));
+      lods.push(lod);
+      g.add(lod.object);
     });
-    return g;
+    return { g, lods };
   }, [set, material]);
-  useEffect(
-    () => () =>
-      group?.children.forEach((c) => {
-        (c as InstancedMesh).geometry.dispose();
-        (c as InstancedMesh).dispose();
-      }),
-    [group],
-  );
-  return group ? <primitive object={group} /> : null;
+  // Swap people between near and far detail as the camera moves (no-op while it stands still).
+  useFrame(({ camera }) => {
+    if (group) for (const lod of group.lods) lod.update(camera.position);
+  });
+  // The shared person material belongs to useShared; only the crowd geometry is freed here.
+  useEffect(() => () => group?.lods.forEach((lod) => lod.dispose()), [group]);
+  return group ? <primitive object={group.g} /> : null;
 }
 
 function Chunk({ chunk, shared, shadows }: { chunk: CityChunk; shared: Shared; shadows: boolean }) {
