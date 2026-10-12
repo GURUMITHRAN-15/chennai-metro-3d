@@ -318,7 +318,7 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
     if (walking && panelOpen) unlockWalkPointer();
   }, [walking, panelOpen]);
 
-  // Looking: a click on the view captures the mouse (Esc frees it); on touch, drag to look.
+  // Looking: a click on the view captures the mouse (Esc frees it); on touch, drag the view the way to look.
   useEffect(() => {
     if (!walking) return;
     const el = gl.domElement;
@@ -343,9 +343,9 @@ export function WalkMode({ engine, reducedMotion }: { engine: SimulationEngine; 
       }
       const d = drags.get(e.pointerId);
       if (!d) return;
-      // Grab and pull, like a street-view panorama.
-      walkInput.turn -= (e.clientX - d.x) * LOOK_RATE * 1.6;
-      walkInput.tilt += (e.clientY - d.y) * LOOK_RATE * 1.6;
+      // The view follows the finger, as in phone games: drag left to look left, up to look up.
+      walkInput.turn += (e.clientX - d.x) * LOOK_RATE * 1.6;
+      walkInput.tilt -= (e.clientY - d.y) * LOOK_RATE * 1.6;
       d.x = e.clientX;
       d.y = e.clientY;
     };

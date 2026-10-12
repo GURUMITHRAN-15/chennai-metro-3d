@@ -15,7 +15,7 @@ import { formatClock } from "../../utils/format";
 /** Phone layout: the world stays full-screen, controls live in a bottom sheet. */
 export function MobileSheet({ engine, snap }: { engine: SimulationEngine; snap: SimulationState }) {
   const [expanded, setExpanded] = useState(false);
-  const { full, toggle } = useFullscreen();
+  const { full, toggle, supported } = useFullscreen();
   const next = engine.journey.stops[snap.nextStationIndex]?.station;
   const current = engine.journey.stops[snap.currentStationIndex]?.station;
   const atStation = ["stopped", "doors-open", "doors-closing"].includes(snap.state);
@@ -67,14 +67,16 @@ export function MobileSheet({ engine, snap }: { engine: SimulationEngine; snap: 
         >
           {snap.simulationSpeed}×
         </button>
-        <button
-          type="button"
-          onClick={toggle}
-          aria-label={full ? "Exit fullscreen" : "Enter fullscreen"}
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong text-[#d6dce4]"
-        >
-          {full ? <Shrink /> : <Expand />}
-        </button>
+        {supported && (
+          <button
+            type="button"
+            onClick={toggle}
+            aria-label={full ? "Exit fullscreen" : "Enter fullscreen"}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-line-strong text-[#d6dce4]"
+          >
+            {full ? <Shrink /> : <Expand />}
+          </button>
+        )}
       </div>
       <div className="flex short:min-w-0 short:flex-1">
         <Timeline engine={engine} snap={snap} />
@@ -95,7 +97,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
   return (
     <div className="fixed inset-0 z-50 flex items-end md:hidden" role="presentation">
       <button type="button" aria-label="Close menu" tabIndex={-1} className="absolute inset-0 bg-black/45" onClick={onClose} />
-      <div role="dialog" aria-modal="true" aria-label="View options" className="relative flex w-full flex-col gap-5 rounded-t-2xl bg-surface px-5 pb-8 pt-4 animate-rise-in">
+      <div role="dialog" aria-modal="true" aria-label="View options" className="quiet-scroll relative flex max-h-[calc(100dvh-12px)] w-full flex-col gap-5 overflow-y-auto overscroll-contain rounded-t-2xl bg-surface px-5 pb-[max(32px,env(safe-area-inset-bottom))] pt-4 animate-rise-in short:mx-auto short:max-w-[760px] short:gap-3 short:px-[max(20px,env(safe-area-inset-left))] short:pb-[max(16px,env(safe-area-inset-bottom))] short:pt-3">
         <div className="flex items-center justify-between">
           <span className="text-[15px] font-semibold">View</span>
           <button type="button" onClick={onClose} aria-label="Close menu" className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-subtle">
@@ -104,7 +106,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
         </div>
         <div className="flex flex-col gap-2">
           <span className="text-[11px] tracking-[0.12em] text-muted">CAMERA</span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-2 short:grid-cols-3">
             {CAMERA_MODES.map((m) => (
               <button
                 key={m.id}
@@ -114,7 +116,7 @@ export function MobileMenu({ open, onClose }: { open: boolean; onClose: () => vo
                   setMode(m.id);
                   onClose();
                 }}
-                className={`h-11 rounded-lg text-[14px] ${mode === m.id ? "bg-ink font-semibold text-bg" : "bg-surface-2 text-subtle"}`}
+                className={`h-11 rounded-lg text-[14px] short:h-10 ${mode === m.id ? "bg-ink font-semibold text-bg" : "bg-surface-2 text-subtle"}`}
               >
                 {m.label}
               </button>

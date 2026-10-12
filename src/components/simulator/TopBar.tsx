@@ -6,22 +6,42 @@ import { Segmented } from "../ui/Segmented";
 import { Clear, Cloud, CloudRain, Expand, Keyboard, Moon, More, Shrink, Sliders, Sun } from "../ui/Icons";
 import { CAMERA_MODES, useViewStore, type CameraMode, type Weather } from "../../simulation/store";
 
+type WebkitDocument = Document & { webkitFullscreenElement?: Element | null; webkitFullscreenEnabled?: boolean; webkitExitFullscreen?: () => void };
+type WebkitElement = HTMLElement & { webkitRequestFullscreen?: () => void };
+
+const fullscreenElement = () => document.fullscreenElement ?? (document as WebkitDocument).webkitFullscreenElement ?? null;
+
 export function useFullscreen() {
   const [full, setFull] = useState(false);
+  // iPhone Safari has no page fullscreen: callers hide the button there (false until mounted).
+  const [supported, setSupported] = useState(false);
   useEffect(() => {
-    const on = () => setFull(Boolean(document.fullscreenElement));
+    const d = document as WebkitDocument;
+    setSupported(Boolean(d.fullscreenEnabled || d.webkitFullscreenEnabled));
+    const on = () => setFull(Boolean(fullscreenElement()));
     document.addEventListener("fullscreenchange", on);
-    return () => document.removeEventListener("fullscreenchange", on);
+    document.addEventListener("webkitfullscreenchange", on);
+    return () => {
+      document.removeEventListener("fullscreenchange", on);
+      document.removeEventListener("webkitfullscreenchange", on);
+    };
   }, []);
   const toggle = () => {
+    const d = document as WebkitDocument;
+    const el = document.documentElement as WebkitElement;
     try {
-      if (document.fullscreenElement) void document.exitFullscreen();
-      else void document.documentElement.requestFullscreen?.();
+      if (fullscreenElement()) {
+        if (document.exitFullscreen) void document.exitFullscreen().catch(() => undefined);
+        else d.webkitExitFullscreen?.();
+      } else if (el.requestFullscreen) {
+        // Hide the browser's own bars too on phones.
+        void el.requestFullscreen({ navigationUI: "hide" }).catch(() => undefined);
+      } else el.webkitRequestFullscreen?.();
     } catch {
-      // Fullscreen may be unavailable (iOS Safari); ignore.
+      // Refused or unavailable: the page simply stays as it is.
     }
   };
-  return { full, toggle };
+  return { full, toggle, supported };
 }
 
 export function CameraSwitcher({ compact = false }: { compact?: boolean }) {
@@ -154,7 +174,7 @@ export function IconButton({
 }
 
 export function TopBar({ onOpenMenu, threeD = true }: { onOpenMenu: () => void; threeD?: boolean }) {
-  const { full, toggle } = useFullscreen();
+  const { full, toggle, supported } = useFullscreen();
   const setSettingsOpen = useViewStore((s) => s.setSettingsOpen);
   const setShortcutsOpen = useViewStore((s) => s.setShortcutsOpen);
   return (
@@ -190,7 +210,13 @@ export function TopBar({ onOpenMenu, threeD = true }: { onOpenMenu: () => void; 
           <Sliders />
         </IconButton>
       </div>
-      <div className="pointer-events-auto md:hidden">
+      <div className="pointer-events-auto flex items-center gap-2 md:hidden">
+        {/* Phones: full screen is one tap away (hides the browser bars, more room for the view). */}
+        {threeD && supported && (
+          <IconButton label={full ? "Exit full screen" : "Full screen"} onClick={toggle} pressed={full}>
+            {full ? <Shrink /> : <Expand />}
+          </IconButton>
+        )}
         {threeD ? (
           <IconButton label="Open menu: cameras, lighting, weather and settings" onClick={onOpenMenu}>
             <More />
