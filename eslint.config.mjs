@@ -28,5 +28,7 @@ export default defineConfig([
     "scripts/**",
     // Minified bundle of src/three/world/tileWorker.ts (scripts/build-worker.mjs).
     "public/world/tileWorker.js",
+    // Local, gitignored scratch scripts for one-off checks.
+    ".verify/**",
   ]),
 ]);
