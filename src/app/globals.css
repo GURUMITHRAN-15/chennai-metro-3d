@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/*
+ * "md" (tablet and up) needs height as well as width: a phone held sideways is
+ * wide but short, and keeps the phone layout (bottom sheet, compact HUD).
+ */
+@custom-variant md (@media (width >= 48rem) and (height >= 32rem));
+/* Short screens (a phone held sideways): controls in one row, smaller titles. */
+@custom-variant short (@media (height < 32rem));
+
 @theme {
   --color-bg: #070b12;
   --color-surface: #101722;

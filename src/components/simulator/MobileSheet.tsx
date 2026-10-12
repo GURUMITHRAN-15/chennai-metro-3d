@@ -29,35 +29,35 @@ export function MobileSheet({ engine, snap }: { engine: SimulationEngine; snap: 
   return (
     <section
       aria-label="Journey controls"
-      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex flex-col gap-4 rounded-t-[20px] border-t border-white/[0.06] bg-[rgba(16,23,34,0.96)] px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-2.5 md:hidden"
+      className="pointer-events-auto absolute inset-x-0 bottom-0 z-20 flex flex-col gap-4 rounded-t-[20px] border-t border-white/[0.06] bg-[rgba(16,23,34,0.96)] px-4 pb-[max(20px,env(safe-area-inset-bottom))] pt-2.5 short:flex-row short:items-center short:gap-4 short:rounded-t-[16px] short:px-[max(16px,env(safe-area-inset-left))] short:pb-[max(8px,env(safe-area-inset-bottom))] short:pt-2 md:hidden"
     >
       <button
         type="button"
         onClick={() => setExpanded((e) => !e)}
         aria-expanded={expanded}
         aria-label={expanded ? "Hide station list" : "Show station list"}
-        className="mx-auto flex h-6 w-16 items-center justify-center"
+        className="mx-auto flex h-6 w-16 items-center justify-center short:hidden"
       >
         <span className="h-1 w-9 rounded-full bg-[#2e3a4c]" />
       </button>
       {expanded && (
-        <div className="quiet-scroll max-h-[40dvh] overflow-y-auto px-1">
+        <div className="quiet-scroll max-h-[40dvh] overflow-y-auto px-1 short:hidden">
           <RouteList engine={engine} snap={snap} />
         </div>
       )}
-      <div className="flex items-end justify-between gap-3 rounded-[14px] bg-surface-2 px-4 py-3.5">
+      <div className="flex items-end justify-between gap-3 rounded-[14px] bg-surface-2 px-4 py-3.5 short:w-[280px] short:shrink-0 short:px-3 short:py-2">
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate text-[19px] font-semibold uppercase tracking-[0.04em]">{showName}</span>
+          <span className="truncate text-[19px] font-semibold uppercase tracking-[0.04em] short:text-[15px]">{showName}</span>
           <span className="text-[12px] text-muted">{caption}</span>
         </div>
         {!atStation && !snap.finished && snap.state !== "idle" && (
           <span className="tabular font-mono text-[19px]">{formatClock(snap.etaNext)}</span>
         )}
         {snap.state !== "idle" && (
-          <span className="tabular shrink-0 font-mono text-[12px] text-muted">{Math.round(snap.trainSpeed)} km/h</span>
+          <span className="tabular shrink-0 font-mono text-[12px] text-muted short:hidden">{Math.round(snap.trainSpeed)} km/h</span>
         )}
       </div>
-      <div className="flex items-center justify-center gap-7">
+      <div className="flex items-center justify-center gap-7 short:shrink-0 short:gap-3">
         <PlayButton engine={engine} snap={snap} size={52} />
         <button
           type="button"
@@ -76,7 +76,9 @@ export function MobileSheet({ engine, snap }: { engine: SimulationEngine; snap: 
           {full ? <Shrink /> : <Expand />}
         </button>
       </div>
-      <Timeline engine={engine} snap={snap} />
+      <div className="flex short:min-w-0 short:flex-1">
+        <Timeline engine={engine} snap={snap} />
+      </div>
     </section>
   );
 }

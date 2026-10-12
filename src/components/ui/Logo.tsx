@@ -16,7 +16,8 @@ export function Logo({ compact = false, href = "/" }: { compact?: boolean; href?
   return (
     <Link href={href} className="group inline-flex items-center gap-3 text-ink" aria-label="Chennai Metro 3D — home">
       <LogoMark />
-      <span className="text-[13px] font-semibold tracking-[0.16em]">{compact ? "METRO 3D" : "CHENNAI METRO 3D"}</span>
+      {/* Compact: the full name, tighter (cutting it to "METRO 3D" read as truncated). */}
+      <span className={`font-semibold ${compact ? "text-[12px] tracking-[0.12em]" : "text-[13px] tracking-[0.16em]"}`}>CHENNAI METRO 3D</span>
     </Link>
   );
 }

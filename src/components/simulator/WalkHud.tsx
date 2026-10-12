@@ -92,7 +92,7 @@ function TicketStub({ engine, fare, startedAboard }: { engine: SimulationEngine;
   return (
     <div
       aria-label={`Your ticket: ${from.name} to ${to.name}`}
-      className="pointer-events-none absolute bottom-[274px] right-3 z-20 flex w-[210px] items-center gap-3 rounded-[10px] bg-[#f4f1e6] p-2.5 text-[#1b2430] shadow-xl animate-rise-in md:bottom-[108px] md:right-5"
+      className="pointer-events-none absolute right-3 top-[136px] z-20 flex w-[176px] origin-top-right scale-90 items-center gap-3 rounded-[10px] bg-[#f4f1e6] p-2.5 text-[#1b2430] shadow-xl animate-rise-in md:bottom-[108px] md:right-5 md:top-auto md:w-[210px] md:scale-100"
     >
       <div className="origin-left scale-[0.5] [margin-right:-56px] [margin-block:-28px]">
         <TicketQr seed={`${from.id}>${to.id}@walk`} />
@@ -163,52 +163,113 @@ function Summary({ engine, snap, hud, fare, onClose }: { engine: SimulationEngin
   );
 }
 
-/** Thumb stick for touch screens: push to walk, push to the rim to run. */
+/** Stick travel (px) from the centre to the rim; at the rim the passenger runs. */
+const STICK_R = 48;
+
+/**
+ * Thumb stick for touch screens, as in mobile games: touch anywhere in the
+ * lower left and the stick appears under the thumb; push to walk, to the rim
+ * to run. At rest a faint stick shows where it lives. Tracks its own finger
+ * by pointer id on the window, so it keeps working if pointer capture is
+ * refused, and a second finger elsewhere still looks around (WalkMode).
+ */
 function WalkStick() {
-  const [knob, setKnob] = useState({ x: 0, y: 0 });
-  const base = useRef<HTMLDivElement>(null);
-  const R = 46;
-  const set = (e: React.PointerEvent) => {
-    const rect = base.current?.getBoundingClientRect();
-    if (!rect) return;
-    let x = (e.clientX - (rect.left + rect.width / 2)) / R;
-    let y = (e.clientY - (rect.top + rect.height / 2)) / R;
-    const len = Math.hypot(x, y);
-    if (len > 1) {
-      x /= len;
-      y /= len;
-    }
-    walkInput.stickStrafe = x;
-    walkInput.stickForward = -y;
-    walkInput.run = len > 0.95;
-    setKnob({ x, y });
-  };
-  const stop = () => {
-    walkInput.stickStrafe = 0;
-    walkInput.stickForward = 0;
-    walkInput.run = false;
-    setKnob({ x: 0, y: 0 });
-  };
-  useEffect(() => stop, []);
+  const zone = useRef<HTMLDivElement>(null);
+  const finger = useRef<number | null>(null);
+  const centre = useRef({ x: 0, y: 0 });
+  /** Where the stick sits in the zone (px) and the knob's offset (-1..1), while held. */
+  const [held, setHeld] = useState<{ cx: number; cy: number; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const release = () => {
+      finger.current = null;
+      walkInput.stickStrafe = 0;
+      walkInput.stickForward = 0;
+      walkInput.run = false;
+      setHeld(null);
+    };
+    const follow = (clientX: number, clientY: number) => {
+      const r = zone.current?.getBoundingClientRect();
+      if (!r) return;
+      let x = (clientX - centre.current.x) / STICK_R;
+      let y = (clientY - centre.current.y) / STICK_R;
+      const len = Math.hypot(x, y);
+      if (len > 1) {
+        x /= len;
+        y /= len;
+      }
+      walkInput.stickStrafe = x;
+      walkInput.stickForward = -y;
+      walkInput.run = len > 0.95;
+      setHeld({ cx: centre.current.x - r.left, cy: centre.current.y - r.top, x, y });
+    };
+    const down = (e: PointerEvent) => {
+      if (finger.current !== null || e.pointerType === "mouse") return;
+      const el = zone.current!;
+      finger.current = e.pointerId;
+      try {
+        el.setPointerCapture(e.pointerId);
+      } catch {
+        // Not needed: the finger is followed by id below.
+      }
+      // Centre the stick under the thumb, kept clear of the zone's edges.
+      const r = el.getBoundingClientRect();
+      centre.current = {
+        x: Math.min(Math.max(e.clientX, r.left + STICK_R + 12), r.right - STICK_R - 12),
+        y: Math.min(Math.max(e.clientY, r.top + STICK_R + 12), r.bottom - STICK_R - 12),
+      };
+      follow(e.clientX, e.clientY);
+      e.preventDefault();
+    };
+    const move = (e: PointerEvent) => {
+      if (e.pointerId === finger.current) follow(e.clientX, e.clientY);
+    };
+    const up = (e: PointerEvent) => {
+      if (e.pointerId === finger.current) release();
+    };
+    const el = zone.current!;
+    el.addEventListener("pointerdown", down);
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
+    window.addEventListener("blur", release);
+    return () => {
+      el.removeEventListener("pointerdown", down);
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      window.removeEventListener("blur", release);
+      release();
+    };
+  }, []);
+
   return (
     <div
-      ref={base}
+      ref={zone}
       role="application"
-      aria-label="Walk: drag to move"
-      onPointerDown={(e) => {
-        e.currentTarget.setPointerCapture(e.pointerId);
-        set(e);
-      }}
-      onPointerMove={(e) => {
-        if (e.currentTarget.hasPointerCapture(e.pointerId)) set(e);
-      }}
-      onPointerUp={stop}
-      onPointerCancel={stop}
-      onLostPointerCapture={stop}
+      aria-label="Walk: touch and drag to move"
       onContextMenu={(e) => e.preventDefault()}
-      className="hud-panel pointer-events-auto absolute bottom-[274px] left-3 z-20 hidden h-[124px] w-[124px] touch-none select-none items-center justify-center rounded-full pointer-coarse:flex md:bottom-[108px] md:left-5"
+      className="pointer-events-auto absolute bottom-0 left-0 z-20 hidden h-[46%] w-[55%] touch-none select-none pointer-coarse:block md:bottom-[96px] md:h-[40%] md:w-[40%]"
     >
-      <span className="h-12 w-12 rounded-full bg-ink/85" style={{ transform: `translate(${knob.x * R * 0.7}px, ${knob.y * R * 0.7}px)` }} />
+      {held ? (
+        <div
+          className="absolute rounded-full border border-white/25 bg-black/25"
+          style={{ left: held.cx - STICK_R, top: held.cy - STICK_R, width: STICK_R * 2, height: STICK_R * 2 }}
+        >
+          <span
+            className="absolute left-1/2 top-1/2 h-12 w-12 rounded-full bg-ink/90 shadow-lg"
+            style={{ transform: `translate(calc(-50% + ${held.x * STICK_R}px), calc(-50% + ${held.y * STICK_R}px))` }}
+          />
+        </div>
+      ) : (
+        // At rest: where the thumb goes.
+        <div
+          className="absolute bottom-[max(28px,calc(env(safe-area-inset-bottom)+16px))] left-6 rounded-full border border-white/20 bg-black/15"
+          style={{ width: STICK_R * 2, height: STICK_R * 2 }}
+        >
+          <span className="absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 rounded-full bg-ink/45" />
+        </div>
+      )}
     </div>
   );
 }
@@ -271,15 +332,18 @@ export function WalkHud({ engine, snap }: { engine: SimulationEngine; snap: Simu
           onClick={() => {
             walkInput.interact = true;
           }}
-          className="hud-panel pointer-events-auto absolute inset-x-3 bottom-[410px] z-20 mx-auto flex w-fit items-center gap-2.5 rounded-full px-5 py-2.5 text-[14px] font-medium animate-rise-in md:bottom-[124px]"
+          // Phones: a large button under the right thumb (the left one is on the stick). Larger screens: centred, with its key.
+          className="hud-panel pointer-events-auto absolute bottom-[max(28px,calc(env(safe-area-inset-bottom)+16px))] right-4 z-30 flex min-h-14 w-fit max-w-[45%] items-center gap-2.5 rounded-full px-5 py-3 text-[15px] font-semibold leading-tight animate-rise-in active:scale-[0.97] md:inset-x-3 md:bottom-[124px] md:right-3 md:mx-auto md:min-h-0 md:max-w-none md:py-2.5 md:text-[14px] md:font-medium"
         >
-          <Key>E</Key>
+          <span className="hidden pointer-fine:inline-flex">
+            <Key>E</Key>
+          </span>
           {hud.prompt.label}
         </button>
       )}
 
       {showNotice && (
-        <div role="status" className="hud-panel pointer-events-none absolute inset-x-3 bottom-[466px] z-20 mx-auto w-fit max-w-[calc(100%-24px)] rounded-[18px] px-5 py-2 text-center text-[13px] text-ink animate-fade-in md:bottom-[176px]">
+        <div role="status" className="hud-panel pointer-events-none absolute inset-x-3 bottom-[max(132px,calc(env(safe-area-inset-bottom)+120px))] z-20 mx-auto w-fit max-w-[calc(100%-24px)] rounded-[18px] px-5 py-2 text-center text-[13px] text-ink animate-fade-in md:bottom-[176px]">
           {hud.notice}
         </div>
       )}

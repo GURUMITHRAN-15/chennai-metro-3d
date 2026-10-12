@@ -216,7 +216,8 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
       {use3d && loaded && <FreeCameraPad />}
       {use3d && loaded && <PassengerPad />}
       <ControlBar engine={engine} snap={snap} />
-      <MobileSheet engine={engine} snap={snap} />
+      {/* On foot the stick and the view are the controls; the menu still switches camera. */}
+      {!walking && <MobileSheet engine={engine} snap={snap} />}
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <SettingsPanel />
       <ShortcutsHelp />

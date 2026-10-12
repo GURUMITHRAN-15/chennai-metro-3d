@@ -148,6 +148,8 @@ export const walkPointer = { el: null as HTMLElement | null };
 export function lockWalkPointer() {
   const el = walkPointer.el;
   if (!el || typeof document === "undefined" || document.pointerLockElement === el) return;
+  // Touch screens look by dragging; a captured pointer would turn finger moves into mouse-look.
+  if (typeof matchMedia === "function" && !matchMedia("(pointer: fine)").matches) return;
   const request = (opts?: object) => (el.requestPointerLock as (o?: object) => Promise<void> | undefined)(opts);
   try {
     // Raw mouse input where the browser offers it; a plain capture otherwise.

@@ -15,13 +15,13 @@ function StationName({ name, nameTa, size = "lg" }: { name: string; nameTa: stri
       <span aria-hidden="true" className="h-1 w-10 rounded-full bg-route" />
       <span
         className={`font-semibold uppercase leading-none tracking-[0.06em] text-ink [text-shadow:0_2px_24px_rgba(0,0,0,0.45)] ${
-          size === "lg" ? "text-[40px] sm:text-[64px]" : "text-[32px] sm:text-[44px]"
+          size === "lg" ? "text-[40px] sm:text-[64px] short:text-[30px]" : "text-[32px] sm:text-[44px] short:text-[26px]"
         }`}
       >
         {name}
       </span>
       {nameTa && (
-        <span lang="ta" className="font-tamil text-[22px] font-medium text-[#d5dce5] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-[28px]">
+        <span lang="ta" className="font-tamil text-[22px] font-medium text-[#d5dce5] [text-shadow:0_2px_18px_rgba(0,0,0,0.5)] sm:text-[28px] short:text-[17px]">
           {nameTa}
         </span>
       )}
@@ -68,9 +68,9 @@ export function ArrivalOverlay({
   if (snap.state === "idle" && !snap.finished && snap.elapsed === 0) {
     if (walking) return null;
     return (
-      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6">
+      <div className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-8 px-6 short:gap-3 short:pb-[72px]">
         <StationName name={engine.journey.from.name} nameTa={engine.journey.from.nameTa} />
-        <div className="pointer-events-auto flex flex-col items-center gap-3">
+        <div className="pointer-events-auto flex flex-col items-center gap-3 short:flex-row short:flex-wrap short:justify-center short:gap-2">
           <button
             type="button"
             onClick={() => {
@@ -82,9 +82,13 @@ export function ArrivalOverlay({
           >
             <Play size={16} /> Depart for {engine.journey.to.name}
           </button>
-          <span className="text-center text-[13px] text-[#c9d1dc] [text-shadow:0_1px_8px_rgba(0,0,0,0.6)]">
-            {stops.length - 1} {stops.length - 1 === 1 ? "stop" : "stops"} · walk from the street to the train · press Space to just ride
+          <span className="rounded-full bg-black/45 px-3.5 py-1.5 text-center text-[13px] text-[#e3e8ee] backdrop-blur-sm">
+            {stops.length - 1} {stops.length - 1 === 1 ? "stop" : "stops"} · walk from the street to the train
           </span>
+          {/* Or skip the walk: the button for touch, Space for keyboards. */}
+          <button type="button" onClick={() => engine.play()} className={buttonClass("secondary", "md", "border-white/30 bg-black/45 backdrop-blur-sm")}>
+            Just ride<span className="hidden text-muted pointer-fine:inline"> · Space</span>
+          </button>
         </div>
       </div>
     );
