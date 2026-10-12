@@ -217,6 +217,6 @@ The code in this repository is under the [MIT License](LICENSE). That covers the
 
 Raw downloads are cached in `data-cache/` (not committed). Station names and order for Lines 3 and 5, where OSM is incomplete, are from Wikipedia.
 
-**Visits** are counted anonymously with [GoatCounter](https://www.goatcounter.com): no cookies and nothing that identifies a visitor. It is switched on by the site code in `src/lib/site.ts`. The landing page also shows the repository's stars and contributors, from a snapshot taken at build time (`scripts/github-stats.mjs`) refreshed live from the GitHub API.
+The landing page shows the repository's stars and contributors, from a snapshot taken at build time (`scripts/github-stats.mjs`) refreshed live from the GitHub API. There is no analytics or tracking.
 
 This is an independent visualisation, not affiliated with or endorsed by Chennai Metro Rail Limited.

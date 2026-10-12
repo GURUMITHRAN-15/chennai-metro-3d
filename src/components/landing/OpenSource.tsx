@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import snapshot from "../../data/github.json";
-import { GOATCOUNTER_CODE, goatcounterUrl, REPO } from "../../lib/site";
+import { REPO } from "../../lib/site";
 import { ArrowRight, GitHub, Star } from "../ui/Icons";
 
 interface Contributor {
@@ -43,23 +43,6 @@ function useGitHubStats(): Stats {
   return stats;
 }
 
-/** Total visits from GoatCounter's public counter, or null (not configured, or not answering). */
-function useVisits(): string | null {
-  const [visits, setVisits] = useState<string | null>(null);
-  useEffect(() => {
-    if (!GOATCOUNTER_CODE) return;
-    const ctl = new AbortController();
-    fetch(goatcounterUrl("/counter/TOTAL.json"), { signal: ctl.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { count?: string } | null) => {
-        if (d?.count) setVisits(d.count.replace(/\s/g, ","));
-      })
-      .catch(() => undefined);
-    return () => ctl.abort();
-  }, []);
-  return visits;
-}
-
 function Figure({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
@@ -69,10 +52,9 @@ function Figure({ label, value }: { label: string; value: string }) {
   );
 }
 
-/** Landing page: the project's repository, its stars and the people who built it, and how many have visited. */
+/** Landing page: the project's repository, its stars and the people who built it. */
 export function OpenSource() {
   const { stars, forks, contributors } = useGitHubStats();
-  const visits = useVisits();
   return (
     <section aria-labelledby="open-heading" className="border-t border-line px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
       <div className="grid grid-cols-[minmax(0,1fr)] gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-20">
@@ -101,11 +83,10 @@ export function OpenSource() {
         </div>
 
         <div className="flex flex-col gap-10">
-          <dl className="grid grid-cols-2 gap-x-8 gap-y-7 sm:grid-cols-4">
+          <dl className="grid grid-cols-3 gap-x-8 gap-y-7">
             <Figure label="Stars" value={fmt.format(stars)} />
             <Figure label="Forks" value={fmt.format(forks)} />
             <Figure label="Contributors" value={fmt.format(contributors.length)} />
-            {visits && <Figure label="Visits" value={visits} />}
           </dl>
           {contributors.length > 0 && (
             <div className="flex flex-col gap-4">
