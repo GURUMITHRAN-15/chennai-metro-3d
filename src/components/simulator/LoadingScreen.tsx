@@ -102,9 +102,10 @@ function JourneyStrip({ journey, value, colour }: { journey: LoadingJourney | nu
             />
           );
         })}
-        {/* The train: its nose at the progress point; the wrapper spans the line, so a percentage moves along it. */}
-        <div className="absolute inset-x-0 top-[6px] transition-transform duration-700 ease-out" style={{ transform: `translateX(${pct}%)` }}>
-          <div className="absolute right-full top-0">
+        {/* The train: a zero-width marker at the progress point, the train trailing behind it. (A full-width
+            wrapper shifted by the percentage would hang off the right edge and make the page scroll sideways.) */}
+        <div className="absolute top-[6px] w-0 transition-[left] duration-700 ease-out" style={{ left: `${pct}%` }}>
+          <div className="absolute right-0 top-0">
             {/* Before the line is known the band is grey, not white on white. */}
             <StripTrain colour={journey ? colour : "#8b96a7"} />
           </div>
@@ -163,7 +164,7 @@ export function LoadingScreen({
 
   return (
     <div
-      className={`absolute inset-0 z-40 flex items-center justify-center overflow-y-auto bg-bg px-6 py-10 transition-opacity duration-700 ${
+      className={`absolute inset-0 z-40 flex items-center justify-center overflow-y-auto overflow-x-hidden bg-bg px-6 py-10 transition-opacity duration-700 ${
         visible ? "opacity-100" : "pointer-events-none opacity-0"
       }`}
       aria-hidden={!visible}
