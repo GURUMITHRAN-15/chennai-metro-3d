@@ -1,10 +1,12 @@
 {
   "meta": {
-    "lastVerified": "2026-10-03",
+    "lastVerified": "2026-10-13",
     "sources": {
       "wiki-line4": "Wikipedia — 'Yellow Line (Chennai Metro)' (Line 4, 26.1 km Lighthouse–Poonamallee Bypass; colour changed from Orange to Yellow in 2025)",
       "dtnext-cmrs": "DT Next — CMRS authorises commissioning of the 14.6 km Poonamallee Bypass–Porur Junction–Vadapalani stretch",
       "swarajya-opening": "Swarajya — 'Prime Minister Modi set to inaugurate 14.6 km Poonamallee–Vadapalani metro corridor on 11 October'",
+      "dtnext-flagoff": "DT Next — 'PM Modi, CM Vijay flag off Poonamallee–Vadapalani Metro service, travel together' (11 Oct 2026)",
+      "dtnext-commercial": "DT Next — 'Commercial Metro operations from Poonamallee to Vadapalani will commence from 4 pm on Sunday': passenger service from 4 pm on 11 Oct, then 7 am–9 pm daily; the six stations between Porur and Vadapalani stay closed for now",
       "nativeplanet-opening": "NativePlanet — 14.64 km stretch opens 11 October; 15 trains at 10-minute intervals; fares Rs 10–40; about 30 minutes end to end",
       "dtnext-fares": "DT Next — fares fixed at Rs 10–Rs 40 (Sep 2026)"
     }
@@ -106,15 +108,15 @@
       ],
       "lengthKm": 14.64,
       "lengthSource": "nativeplanet-opening",
-      "status": "cmrs-approved",
-      "statusLabel": "CMRS-approved · opening scheduled 11 Oct 2026",
+      "status": "open",
+      "statusLabel": "Open since 11 Oct 2026",
       "openingDate": "2026-10-11",
-      "openingSource": "swarajya-opening",
+      "openingSource": "dtnext-flagoff",
       "servedStationCount": 11,
       "passedStationCount": 6,
       "headwayMinutes": 10,
       "trainsInService": 15,
-      "operatingHours": "05:00–23:00 (reported plan)",
+      "operatingHours": "07:00–21:00 (reported)",
       "reportedJourneyMinutes": 30,
       "fares": {
         "currency": "INR",

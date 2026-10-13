@@ -30,7 +30,7 @@ export default function ExplorePage() {
         <section className="px-5 pb-10 pt-14 sm:px-8 lg:px-12 lg:pt-20">
           <PageIntro title="The network">
             <p>
-              The Blue and Green lines are open. Line 4&apos;s first stretch, Poonamallee Bypass to Vadapalani, opens next; the rest of Line 4
+              The Blue and Green lines are open, and since 11 October 2026 so is Line 4&apos;s first stretch, Poonamallee Bypass to Vadapalani; the rest of Line 4
               and the Purple and Red lines are being built. Every line is drawn on its real track.
             </p>
           </PageIntro>

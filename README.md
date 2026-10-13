@@ -12,8 +12,7 @@ Pick a line and any two stations, then watch a three-car train depart, accelerat
 
 - **Real track, real city.** Every line runs on its real path from OpenStreetMap: up on viaducts, down ramps into tunnels and underground stations, past the real streets, buildings, flyovers, lakes and parks around it.
 - **Six routes on five lines:**
-  - Open: Wimco Nagar Depot → Airport (Blue); Central → St. Thomas Mount (Green).
-  - Opening: Poonamallee Bypass → Vadapalani (Yellow).
+  - Open: Wimco Nagar Depot → Airport (Blue); Central → St. Thomas Mount (Green); Poonamallee Bypass → Vadapalani (Yellow, since 11 Oct 2026; six Arcot Road stations not open yet).
   - Under-construction previews: Madhavaram → SIPCOT (Purple); Vadapalani → Lighthouse (Yellow); Madhavaram → Sholinganallur (Red).
 - **₹0 to run.** No API keys and no paid services. Everything runs client-side from local data, with procedural textures and the browser's own speech synthesis.
 - **Data first.** Every real-world fact is sourced in `src/data/*.json`, and every approximation is labelled as one (see [Data](#data)).
@@ -171,7 +170,7 @@ Production build, measured locally:
 
 ## Data
 
-Track and stations from OpenStreetMap (snapshot 5 Oct 2026). Line 4 facts verified on 3 Oct 2026. Full provenance is on `/about`.
+Track and stations from OpenStreetMap (snapshot 5 Oct 2026). Line 4 facts verified on 13 Oct 2026 (opened 11 Oct). Full provenance is on `/about`.
 
 | Item | Status |
 | --- | --- |
