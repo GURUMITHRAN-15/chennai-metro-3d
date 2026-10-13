@@ -212,6 +212,17 @@ body {
   from { left: -35%; }
   to { left: 100%; }
 }
+/* The loading screen's line while the simulator code downloads: a soft light running along it. */
+@keyframes strip-shimmer {
+  from { background-position: -40% 0; }
+  to { background-position: 140% 0; }
+}
+.loading-strip-shimmer {
+  background: linear-gradient(90deg, transparent 0%, var(--strip, #f5f7fa) 50%, transparent 100%) no-repeat;
+  background-size: 35% 100%;
+  opacity: 0.7;
+  animation: strip-shimmer 1.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
 .loading-indeterminate {
   animation: loading-slide 1.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }

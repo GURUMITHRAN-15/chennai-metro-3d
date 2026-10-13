@@ -14,7 +14,8 @@ import { PassengerPad } from "./PassengerPad";
 import { TicketCard } from "./TicketCard";
 import { JourneySummary } from "./JourneySummary";
 import { WalkHud } from "./WalkHud";
-import { LoadingScreen, type LoadProgress } from "./LoadingScreen";
+import { LoadingScreen, type LoadingJourney, type LoadProgress } from "./LoadingScreen";
+import { stripStops } from "../../lib/loadingProgress";
 import { MobileMenu, MobileSheet } from "./MobileSheet";
 import { FallbackView } from "./FallbackView";
 import { SceneErrorBoundary } from "./SceneErrorBoundary";
@@ -159,6 +160,15 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
   useKeyboardShortcuts(shortcuts, !settingsOpen && !shortcutsOpen && !menuOpen);
 
   const journeyTitle = `${engine.journey.from.name} → ${engine.journey.to.name}`;
+  // The trip the loading screen draws while the scene gets ready.
+  const loadingJourney = useMemo<LoadingJourney>(
+    () => ({
+      lineName: engine.route.line.name,
+      colour: engine.route.line.colour,
+      stops: stripStops(engine.journey.stops.map((s) => ({ name: s.station.name, nameTa: s.station.nameTa, x: s.x, interchange: s.station.interchange.length > 0 }))),
+    }),
+    [engine],
+  );
 
   return (
     <div
@@ -221,7 +231,7 @@ function Simulator({ engine, walk }: { engine: SimulationEngine; walk: boolean }
       <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
       <SettingsPanel />
       <ShortcutsHelp />
-      <LoadingScreen progress={progress} visible={!loaded} title={journeyTitle}>
+      <LoadingScreen progress={progress} journey={loadingJourney} visible={!loaded} title={journeyTitle}>
         {sceneSlow && !loaded && (
           <div className="flex flex-col gap-3 animate-fade-in" role="alert" data-scene-slow="true">
             <p className="text-[13px] leading-relaxed text-muted">

@@ -2,17 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore } from "react";
-import { LoadingScreen, type LoadRow } from "./LoadingScreen";
+import { LoadingScreen } from "./LoadingScreen";
 import { buttonClass } from "../ui/Button";
 
 /** After this long without the simulator code, explain and offer a retry. */
 export const SLOW_LOAD_MS = 12000;
-
-const BOOT_ROWS: LoadRow[] = [
-  { label: "Downloading the 3D engine", value: null, note: "In progress" },
-  { label: "Loading environment", value: null, note: "Waiting" },
-  { label: "Preparing train", value: null, note: "Waiting" },
-];
 
 const noopSubscribe = () => () => {};
 /** false during SSR and hydration, true once running in the browser. */
@@ -78,7 +72,7 @@ export function BootScreen() {
 
   return (
     <div className="fixed inset-0 bg-bg" data-boot={slow ? "slow" : "loading"}>
-      <LoadingScreen visible rows={BOOT_ROWS} title="Loading simulator">
+      <LoadingScreen visible journey={null} title="Loading simulator">
         {slow && (
           <div className="flex flex-col gap-4 animate-fade-in" role="alert">
             <div className="flex flex-col gap-1.5">
