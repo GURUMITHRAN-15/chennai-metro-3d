@@ -378,10 +378,10 @@ export function CameraRig({ reducedMotion, cameraShake, getArrival, hero = false
           break;
         case "front":
           if (hero) {
-            // Gentle front three-quarter, drifting slowly so the frame breathes.
+            // Front three-quarter from the train's left, aimed a little to its right (the camera faces back along the line) so the train sits clear of the headline; drifting slowly so the frame breathes.
             const drift = Math.sin(s.time * 0.07);
-            tmp.pos.copy(pose.head).addScaledVector(f, 24 + drift * 4).addScaledVector(r, -8.5 - drift * 1.5).add(tmp.v.set(0, 5.2 + drift * 0.6, 0));
-            tmp.look.copy(C).addScaledVector(f, -4).addScaledVector(r, -2).add(tmp.v.set(0, 1.2, 0));
+            tmp.pos.copy(pose.head).addScaledVector(f, 22 + drift * 4).addScaledVector(r, -13 - drift * 1.5).add(tmp.v.set(0, 5.2 + drift * 0.6, 0));
+            tmp.look.copy(C).addScaledVector(f, -4).addScaledVector(r, 3).add(tmp.v.set(0, 1.2, 0));
             desiredFov = 38;
           } else {
             tmp.pos.copy(pose.head).addScaledVector(f, 26).addScaledVector(r, -15).add(tmp.v.set(0, 4, 0));
