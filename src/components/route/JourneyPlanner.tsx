@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useId, useMemo, useState } from "react";
 import { RouteMap } from "./RouteMap";
-import { ArrowRight, ChevronDown, Swap } from "../ui/Icons";
+import { StationCombobox } from "./StationCombobox";
+import { ArrowRight, Swap } from "../ui/Icons";
 import { buttonClass } from "../ui/Button";
 import { LineRoundel } from "../ui/LineRoundel";
 import { journeyDistanceKm, journeyDuration, simulatorHref, stationsBetween, type RouteSummary } from "../../lib/routeSummary";
@@ -112,7 +113,7 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
         </h2>
 
         <div className="flex flex-col gap-2.5">
-          <StationSelect
+          <StationCombobox
             id={fromId}
             label="From"
             value={from}
@@ -132,7 +133,7 @@ function Planner({ summary, initialFrom, initialTo }: { summary: RouteSummary; i
               <Swap size={16} />
             </button>
           </div>
-          <StationSelect
+          <StationCombobox
             id={toId}
             label="To"
             value={to}
@@ -232,55 +233,6 @@ function Stat({ label, value, unit }: { label: string; value: string; unit?: str
         {value}
         {unit && <span className="text-[14px] font-medium tracking-normal text-muted"> {unit}</span>}
       </dd>
-    </div>
-  );
-}
-
-function StationSelect({
-  id,
-  label,
-  value,
-  stops,
-  active,
-  onFocus,
-  onChange,
-  marker,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  stops: { id: string; name: string }[];
-  active: boolean;
-  onFocus: () => void;
-  onChange: (id: string) => void;
-  marker: React.ReactNode;
-}) {
-  return (
-    <div className="flex flex-col gap-2.5">
-      <label htmlFor={id} className="text-[14px] text-muted">
-        {label}
-      </label>
-      <div
-        className={`relative flex h-[54px] items-center rounded-2xl bg-white/[0.05] transition-shadow duration-150 ${active ? "shadow-[inset_0_0_0_1.5px_rgba(245,247,250,0.6)]" : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"}`}
-      >
-        <span className="pointer-events-none absolute left-4 flex items-center" aria-hidden="true">
-          {marker}
-        </span>
-        <select
-          id={id}
-          value={value}
-          onFocus={onFocus}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-full w-full cursor-pointer appearance-none rounded-2xl bg-transparent pl-11 pr-10 text-[17px] font-medium text-ink outline-none"
-        >
-          {stops.map((s) => (
-            <option key={s.id} value={s.id} className="bg-surface text-ink">
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={16} className="pointer-events-none absolute right-4 text-muted" />
-      </div>
     </div>
   );
 }
