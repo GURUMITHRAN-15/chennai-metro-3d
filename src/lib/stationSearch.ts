@@ -21,7 +21,7 @@ export interface Searchable {
 export function normaliseForSearch(text: string): string {
   return text
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .normalize("NFC")
     .toLocaleLowerCase("en")
     // Apostrophes vanish ("Pachaiyappa's" = "pachaiyappas"); other punctuation separates words.

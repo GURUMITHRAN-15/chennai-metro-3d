@@ -60,10 +60,16 @@ body {
   background: rgba(22, 119, 255, 0.4);
 }
 
-:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
-  border-radius: 6px;
+/*
+ * Keyboard focus: a light ring, matching the light primary buttons. In the base
+ * layer so a component's own focus treatment (outline-none plus its ring) wins.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid rgba(245, 247, 250, 0.75);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
 }
 
 .tabular {
@@ -198,7 +204,7 @@ body {
   outline: none;
 }
 .timeline-range:focus-visible::-webkit-slider-thumb {
-  box-shadow: 0 0 0 4px rgba(22, 119, 255, 0.6);
+  box-shadow: 0 0 0 4px rgba(245, 247, 250, 0.45);
 }
 
 /* Indeterminate progress: a stage that is running but can't report a fraction. */

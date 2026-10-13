@@ -123,7 +123,9 @@ export function StationCombobox({
             e.currentTarget.select();
             show();
           }}
-          onClick={() => {
+          onClick={(e) => {
+            // A click on a field already showing a station selects it, so typing starts a fresh search.
+            if (query === null) e.currentTarget.select();
             if (!open) show();
           }}
           onChange={(e) => {
@@ -149,7 +151,8 @@ export function StationCombobox({
                 key={s.id}
                 id={optionId(i)}
                 role="option"
-                aria-selected={s.id === value}
+                // The highlighted option (the active descendant) is the selected one in this pattern; the chosen station is shown bold.
+                aria-selected={i === current}
                 // Keep focus in the input; a blur here would close the list before the click lands.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(s)}
