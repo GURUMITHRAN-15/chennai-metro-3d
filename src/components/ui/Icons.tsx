@@ -105,6 +105,9 @@ export const Keyboard = (p: IconProps) => (
 export const Volume = (p: IconProps) => (
   <svg {...base(p)}><path d="M11 5L6 9H3v6h3l5 4V5zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13" /></svg>
 );
+export const Search = (p: IconProps) => (
+  <svg {...base(p)}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+);
 export const Check = (p: IconProps) => (
   <svg {...base(p)}><path d="M5 12l5 5L20 7" /></svg>
 );

@@ -67,3 +67,14 @@ export function searchStations<T extends Searchable>(stations: readonly T[], que
   ranked.sort((a, b) => a.score - b.score || a.index - b.index);
   return ranked.map((r) => r.station);
 }
+
+/**
+ * Stations matching `query`, kept in their original order. For lists where the
+ * order means something, like the stops along a line; `searchStations` is for
+ * lists ranked by how well each station matches. An empty query keeps them all.
+ */
+export function filterInOrder<T extends Searchable>(stations: readonly T[], query: string): T[] {
+  if (normaliseForSearch(query) === "") return [...stations];
+  const hits = new Set(searchStations(stations, query));
+  return stations.filter((s) => hits.has(s));
+}

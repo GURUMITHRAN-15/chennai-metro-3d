@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { getAllRouteSummaries } from "./getRouteSummary.ts";
-import { normaliseForSearch, searchStations, type Searchable } from "./stationSearch.ts";
+import { filterInOrder, normaliseForSearch, searchStations, type Searchable } from "./stationSearch.ts";
 
 const st = (name: string, nameTa: string | null = null, altNames: string[] = []): Searchable => ({ name, nameTa, altNames });
 
@@ -82,4 +82,32 @@ test("real data: a typed prefix finds the station at the top of the list", () =>
   const l4 = getAllRouteSummaries()[0];
   assert.equal(searchStations(l4.stations, "vadap")[0].id, "vadapalani");
   assert.equal(searchStations(l4.stations, "poonamallee")[0].id, "poonamallee-bypass");
+});
+
+test("filterInOrder keeps route order, where searchStations ranks by match quality", () => {
+  const line = [st("Anna Nagar"), st("Madhavaram"), st("Perambur Market"), st("Manali")];
+  // Ranked: names starting with "ma" come first. In route order: simply the line's own order.
+  assert.deepEqual(names(searchStations(line, "ma")), ["Madhavaram", "Manali", "Perambur Market"]);
+  assert.deepEqual(names(filterInOrder(line, "ma")), ["Madhavaram", "Perambur Market", "Manali"]);
+});
+
+test("filterInOrder: an empty query keeps every station (as a copy), no match gives none", () => {
+  assert.deepEqual(names(filterInOrder(SAMPLE, "  ")), names(SAMPLE));
+  assert.notEqual(filterInOrder(SAMPLE, ""), SAMPLE);
+  assert.deepEqual(filterInOrder(SAMPLE, "zzzz"), []);
+});
+
+test("filterInOrder works on Tamil and alternative names", () => {
+  assert.deepEqual(names(filterInOrder(SAMPLE, "வட")), ["Vadapalani"]);
+  assert.deepEqual(names(filterInOrder(SAMPLE, "guindy")), ["Alandur"]);
+});
+
+test("real data: filtering a whole line by a station's name keeps that station, in line order", () => {
+  for (const route of getAllRouteSummaries()) {
+    const target = route.stations[Math.floor(route.stations.length / 2)];
+    const kept = filterInOrder(route.stations, target.name);
+    assert.ok(kept.includes(target), `${route.id}: "${target.name}"`);
+    const positions = kept.map((s) => route.stations.indexOf(s));
+    assert.deepEqual(positions, [...positions].sort((a, b) => a - b), `${route.id}: order preserved`);
+  }
 });
